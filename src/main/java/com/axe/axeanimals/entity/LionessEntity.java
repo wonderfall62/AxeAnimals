@@ -2,8 +2,11 @@ package com.axe.axeanimals.entity;
 
 import com.axe.axeanimals.registry.ModEntities;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -20,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class LionessEntity extends TamableAnimal {
     public final AnimationState stretchState = new AnimationState();
+    private int stretchTimer = 0;
 
     public LionessEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -75,9 +79,21 @@ public class LionessEntity extends TamableAnimal {
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide() && this.getDeltaMovement().horizontalDistanceSqr() < 0.0005D && this.random.nextInt(260) == 0) {
-            this.stretchState.start(this.tickCount);
+        if (this.level().isClientSide()) {
+            if (this.stretchTimer != 0) {
+                this.stretchTimer--;
+                if (this.stretchTimer == 0) {
+                    this.stretchState.stop();
+                }
+            } else if (!this.isBaby() && !this.isOrderedToSit() && Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.0005D) == -1 && this.random.nextInt(240) == 0) {
+                this.stretchTimer = 50;
+                this.stretchState.start(this.tickCount);
+            }
         }
+    }
+
+    public boolean isStretchingNow() {
+        return this.stretchTimer != 0;
     }
 
     @Override
@@ -97,23 +113,34 @@ public class LionessEntity extends TamableAnimal {
                 ? ModEntities.LION.get().create(level, EntitySpawnReason.BREEDING)
                 : ModEntities.LIONESS.get().create(level, EntitySpawnReason.BREEDING);
     }
+
     @Override
-    protected net.minecraft.sounds.SoundEvent getAmbientSound() {
-        return net.minecraft.sounds.SoundEvents.RAVAGER_ROAR;
+    public int getAmbientSoundInterval() {
+        return 480;
     }
 
     @Override
-    protected net.minecraft.sounds.SoundEvent getHurtSound(net.minecraft.world.damagesource.DamageSource source) {
-        return net.minecraft.sounds.SoundEvents.POLAR_BEAR_HURT;
+    protected SoundEvent getAmbientSound() {
+        return SoundEvents.OCELOT_AMBIENT;
     }
 
     @Override
-    protected net.minecraft.sounds.SoundEvent getDeathSound() {
-        return net.minecraft.sounds.SoundEvents.POLAR_BEAR_DEATH;
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.POLAR_BEAR_HURT;
+    }
+
+    @Override
+    protected SoundEvent getDeathSound() {
+        return SoundEvents.POLAR_BEAR_DEATH;
+    }
+
+    @Override
+    public float getSoundVolume() {
+        return 0.30F;
     }
 
     @Override
     public float getVoicePitch() {
-        return this.isBaby() ? 1.4F : 0.65F;
+        return this.isBaby() ? 1.35F : 0.65F;
     }
 }
