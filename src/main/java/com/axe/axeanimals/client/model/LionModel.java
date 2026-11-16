@@ -99,3 +99,79 @@ public class LionModel {
         mane.addOrReplaceChild("ManeRight", CubeListBuilder.create()
                 .texOffs(56, 57).mirror().addBox(-3.0F, -4.5F, -3.5F, 3.0F, 9.0F, 8.0F),
                 PartPose.offsetAndRotation(-4.5F, 0.0F, -0.5F, 0.0F, -0.1396F, 0.0873F));
+        // Передние и задние лапы + пучки шерсти на передних лапах
+        PartDefinition armBaseLeft = chest.addOrReplaceChild("ArmBaseLeft", CubeListBuilder.create()
+                .texOffs(0, 56).addBox(-1.5F, -1.5F, -2.5F, 3.0F, 6.0F, 5.0F),
+                PartPose.offsetAndRotation(3.5F, 0.5F, -4.5F, 0.1745F, 0.0F, 0.0F));
+
+        PartDefinition armLeft = armBaseLeft.addOrReplaceChild("ArmLeft", CubeListBuilder.create()
+                .texOffs(0, 67).addBox(-1.5F, 0.0F, -2.0F, 3.0F, 5.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.0F, 0.2F, -0.2618F, 0.0F, 0.0F));
+
+        armLeft.addOrReplaceChild("ArmFurLeft", CubeListBuilder.create()
+                .texOffs(32, 60).addBox(-1.0F, 0.0F, 0.0F, 2.0F, 5.0F, 2.0F),
+                PartPose.offsetAndRotation(0.0F, 0.5F, 1.8F, 0.0873F, 0.0F, 0.0F));
+
+        PartDefinition forearmLeft = armLeft.addOrReplaceChild("ForearmLeft", CubeListBuilder.create()
+                .texOffs(0, 76).addBox(-1.2F, 0.0F, -1.5F, 2.5F, 5.0F, 3.0F),
+                PartPose.offsetAndRotation(0.0F, 4.5F, -0.2F, 0.0873F, 0.0F, 0.0F));
+
+        forearmLeft.addOrReplaceChild("HandLeft", CubeListBuilder.create()
+                .texOffs(0, 84).addBox(-1.5F, 0.0F, -2.5F, 3.0F, 2.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.2F, -0.2F, 0.0F, 0.0F, 0.0F));
+
+        PartDefinition armBaseRight = chest.addOrReplaceChild("ArmBaseRight", CubeListBuilder.create()
+                .texOffs(16, 56).mirror().addBox(-1.5F, -1.5F, -2.5F, 3.0F, 6.0F, 5.0F),
+                PartPose.offsetAndRotation(-3.5F, 0.5F, -4.5F, 0.1745F, 0.0F, 0.0F));
+
+        PartDefinition armRight = armBaseRight.addOrReplaceChild("ArmRight", CubeListBuilder.create()
+                .texOffs(16, 67).mirror().addBox(-1.5F, 0.0F, -2.0F, 3.0F, 5.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.0F, 0.2F, -0.2618F, 0.0F, 0.0F));
+
+        armRight.addOrReplaceChild("ArmFurRight", CubeListBuilder.create()
+                .texOffs(32, 60).mirror().addBox(-1.0F, 0.0F, 0.0F, 2.0F, 5.0F, 2.0F),
+                PartPose.offsetAndRotation(0.0F, 0.5F, 1.8F, 0.0873F, 0.0F, 0.0F));
+
+        PartDefinition forearmRight = armRight.addOrReplaceChild("ForearmRight", CubeListBuilder.create()
+                .texOffs(16, 76).mirror().addBox(-1.3F, 0.0F, -1.5F, 2.5F, 5.0F, 3.0F),
+                PartPose.offsetAndRotation(0.0F, 4.5F, -0.2F, 0.0873F, 0.0F, 0.0F));
+
+        forearmRight.addOrReplaceChild("HandRight", CubeListBuilder.create()
+                .texOffs(16, 84).mirror().addBox(-1.5F, 0.0F, -2.5F, 3.0F, 2.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.2F, -0.2F, 0.0F, 0.0F, 0.0F));
+
+        PartDefinition thighLeft = hips.addOrReplaceChild("ThighLeft", CubeListBuilder.create()
+                .texOffs(42, 60).addBox(-1.5F, -1.5F, -2.5F, 3.0F, 6.0F, 5.0F),
+                PartPose.offsetAndRotation(3.0F, 0.5F, 3.5F, -0.1745F, 0.0F, 0.0F));
+
+        PartDefinition upperLegLeft = thighLeft.addOrReplaceChild("UpperLegLeft", CubeListBuilder.create()
+                .texOffs(42, 71).addBox(-1.3F, 0.0F, -2.0F, 2.6F, 5.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.0F, -0.2F, 0.3491F, 0.0F, 0.0F));
+
+        PartDefinition lowerLegLeft = upperLegLeft.addOrReplaceChild("LowerLegLeft", CubeListBuilder.create()
+                .texOffs(42, 80).addBox(-1.1F, 0.0F, -1.5F, 2.2F, 5.0F, 3.0F),
+                PartPose.offsetAndRotation(0.0F, 4.4F, 0.4F, -0.2618F, 0.0F, 0.0F));
+
+        lowerLegLeft.addOrReplaceChild("FootLeft", CubeListBuilder.create()
+                .texOffs(42, 88).addBox(-1.5F, 0.0F, -2.5F, 3.0F, 2.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.2F, -0.2F, 0.1745F, 0.0F, 0.0F));
+
+        PartDefinition thighRight = hips.addOrReplaceChild("ThighRight", CubeListBuilder.create()
+                .texOffs(58, 60).mirror().addBox(-1.5F, -1.5F, -2.5F, 3.0F, 6.0F, 5.0F),
+                PartPose.offsetAndRotation(-3.0F, 0.5F, 3.5F, -0.1745F, 0.0F, 0.0F));
+
+        PartDefinition upperLegRight = thighRight.addOrReplaceChild("UpperLegRight", CubeListBuilder.create()
+                .texOffs(58, 71).mirror().addBox(-1.3F, 0.0F, -2.0F, 2.6F, 5.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.0F, -0.2F, 0.3491F, 0.0F, 0.0F));
+
+        PartDefinition lowerLegRight = upperLegRight.addOrReplaceChild("LowerLegRight", CubeListBuilder.create()
+                .texOffs(58, 80).mirror().addBox(-1.1F, 0.0F, -1.5F, 2.2F, 5.0F, 3.0F),
+                PartPose.offsetAndRotation(0.0F, 4.4F, 0.4F, -0.2618F, 0.0F, 0.0F));
+
+        lowerLegRight.addOrReplaceChild("FootRight", CubeListBuilder.create()
+                .texOffs(58, 88).mirror().addBox(-1.5F, 0.0F, -2.5F, 3.0F, 2.0F, 4.0F),
+                PartPose.offsetAndRotation(0.0F, 4.2F, -0.2F, 0.1745F, 0.0F, 0.0F));
+
+        return LayerDefinition.create(mesh, 128, 96);
+    }
+}
