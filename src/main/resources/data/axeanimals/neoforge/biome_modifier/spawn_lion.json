@@ -9,14 +9,12 @@
     {
       "type": "axeanimals:lion",
       "weight": 6,
-      "minCount": 1,
-      "maxCount": 1
+      "count": [1, 1]
     },
     {
       "type": "axeanimals:lioness",
       "weight": 10,
-      "minCount": 2,
-      "maxCount": 4
+      "count": [2, 4]
     }
   ]
 }
