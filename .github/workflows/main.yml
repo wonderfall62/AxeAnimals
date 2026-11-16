@@ -1,7 +1,6 @@
 name: Build AxeAnimals Mod
 
 on:
-  push:
   workflow_dispatch:
 
 jobs:
