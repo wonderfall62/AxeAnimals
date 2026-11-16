@@ -34,7 +34,6 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
-import java.util.Optional;
 import java.util.function.Consumer;
 
 public class MarineNetItem extends Item {
@@ -49,7 +48,7 @@ public class MarineNetItem extends Item {
             return InteractionResult.PASS;
         }
 
-        boolean canCatch = (target instanceof WhaleEntity w && w.isBaby())
+        boolean canCatch = (target instanceof WhaleEntity w && (w.isBaby() || Float.compare(w.getGrowthProgress(), 0.99F) == -1))
                 || target instanceof StingrayEntity
                 || target instanceof Dolphin
                 || target instanceof Squid
@@ -65,7 +64,9 @@ public class MarineNetItem extends Item {
                 CompoundTag root = new CompoundTag();
                 root.put("CapturedEntity", out.buildResult());
                 root.putString("CapturedName", target.getName().getString());
-                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(root));
+                ItemStack updated = stack.copy();
+                updated.set(DataComponents.CUSTOM_DATA, CustomData.of(root));
+                player.setItemInHand(hand, updated);
                 target.discard();
                 player.level().playSound(null, player.blockPosition(), SoundEvents.FISHING_BOBBER_RETRIEVE, SoundSource.PLAYERS, 1.0F, 0.9F);
             }
@@ -81,25 +82,27 @@ public class MarineNetItem extends Item {
             return InteractionResult.PASS;
         }
 
-        BlockHitResult hit = getPlayerPOVHitResult(level, player, ClipContext.Fluid.SOURCE_ONLY);
+        BlockHitResult hit = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
         if (hit.getType() == HitResult.Type.BLOCK) {
-            return releaseEntity(level, player, stack, hit.getBlockPos().relative(hit.getDirection()));
+            return releaseEntity(level, player, hand, stack, hit.getBlockPos().relative(hit.getDirection()));
         }
         return InteractionResult.PASS;
     }
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
+        Player player = context.getPlayer();
+        if (player == null) return InteractionResult.PASS;
         ItemStack stack = context.getItemInHand();
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
         if (data == null || !data.copyTag().contains("CapturedEntity")) {
             return InteractionResult.PASS;
         }
         BlockPos spawnPos = context.getClickedPos().relative(context.getClickedFace());
-        return releaseEntity(context.getLevel(), context.getPlayer(), stack, spawnPos);
+        return releaseEntity(context.getLevel(), player, context.getHand(), stack, spawnPos);
     }
 
-    private InteractionResult releaseEntity(Level level, Player player, ItemStack stack, BlockPos pos) {
+    private InteractionResult releaseEntity(Level level, Player player, InteractionHand hand, ItemStack stack, BlockPos pos) {
         if (!level.isClientSide() && level instanceof ServerLevel serverLevel) {
             CustomData data = stack.get(DataComponents.CUSTOM_DATA);
             if (data != null) {
@@ -107,17 +110,17 @@ public class MarineNetItem extends Item {
                 ValueInput input = TagValueInput.create(ProblemReporter.DISCARDING, serverLevel.registryAccess(), tag);
                 Entity entity = EntityType.loadEntityRecursive(input, serverLevel, EntitySpawnReason.BUCKET, e -> e);
                 if (entity != null) {
-                    entity.snapTo(pos.getX() + 0.5D, pos.getY() + 0.1D, pos.getZ() + 0.5D, player != null ? player.getYRot() : 0.0F, 0.0F);
+                    entity.snapTo(pos.getX() + 0.5D, pos.getY() + 0.15D, pos.getZ() + 0.5D, player.getYRot(), 0.0F);
                     serverLevel.addFreshEntity(entity);
-                    stack.remove(DataComponents.CUSTOM_DATA);
+                    ItemStack cleared = stack.copy();
+                    cleared.remove(DataComponents.CUSTOM_DATA);
+                    player.setItemInHand(hand, cleared);
                     serverLevel.playSound(null, pos, SoundEvents.BUCKET_EMPTY_FISH, SoundSource.PLAYERS, 1.0F, 0.9F);
                 }
             }
         }
         return InteractionResult.SUCCESS;
     }
-
-
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
