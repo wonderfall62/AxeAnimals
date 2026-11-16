@@ -190,6 +190,16 @@ public class WhaleEntity extends WaterAnimal {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
+            if (this.tickCount == 5 && this.getPersistentData().getBooleanOr("NeedsNaturalCalf", false)) {
+                this.getPersistentData().remove("NeedsNaturalCalf");
+                WhaleEntity calf = ModEntities.WHALE.get().create(this.level(), EntitySpawnReason.NATURAL);
+                if (calf != null) {
+                    calf.setBabyWhale(true);
+                    calf.snapTo(this.getX() + 3.5, this.getY(), this.getZ() + 3.5, this.getYRot(), 0);
+                    this.level().addFreshEntity(calf);
+                }
+            }
+
             int bTicks = this.entityData.get(BREACH_TICKS);
             if (bTicks != 0) {
                 this.entityData.set(BREACH_TICKS, bTicks - 1);
@@ -199,6 +209,7 @@ public class WhaleEntity extends WaterAnimal {
             if (fTicks != 0) {
                 this.entityData.set(FEEDING_TICKS, fTicks - 1);
             }
+
 
             BlockPos pos = this.blockPosition();
             boolean shallow = !this.level().getFluidState(pos.below(2)).is(FluidTags.WATER);
@@ -305,16 +316,12 @@ public class WhaleEntity extends WaterAnimal {
     @Nullable
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
-        if (!this.isBaby() && Float.compare(this.random.nextFloat(), 0.25F) == -1) {
-            WhaleEntity calf = ModEntities.WHALE.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
-            if (calf != null) {
-                calf.setBabyWhale(true);
-                calf.snapTo(this.getX() + 3.5, this.getY(), this.getZ() + 3.5, this.getYRot(), 0);
-                level.addFreshEntity(calf);
-            }
+        if (!this.isBaby() && reason == EntitySpawnReason.NATURAL && Float.compare(this.random.nextFloat(), 0.25F) == -1) {
+            this.getPersistentData().putBoolean("NeedsNaturalCalf", true);
         }
         return super.finalizeSpawn(level, difficulty, reason, spawnData);
     }
+
 
     @Override
     protected void addAdditionalSaveData(ValueOutput output) {
