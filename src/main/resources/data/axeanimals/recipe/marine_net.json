@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PKP",
+    "SHS",
+    "PKP"
+  ],
+  "key": {
+    "P": "minecraft:prismarine_shard",
+    "K": "minecraft:dried_kelp",
+    "S": "minecraft:string",
+    "H": "minecraft:heart_of_the_sea"
+  },
+  "result": {
+    "id": "axeanimals:marine_net",
+    "count": 1
+  }
+}
