@@ -135,35 +135,40 @@ public class AxeAnimalsClient {
                     }
                 }
             }
-                        else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
+            else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
                 float swim = age * 0.065F + t * 0.22F;
                 float bp = state.breachProgress;
-                body.xRot = (bp > 0.01F) ? (-0.65F * Mth.cos(bp * (float) Math.PI)) : (Mth.sin(swim) * 0.045F);
-                body.y += Mth.sin(swim) * 0.75F;
+                float blend = Mth.sin(bp * (float) Math.PI);
+                float swimRot = Mth.sin(swim) * 0.045F;
+                float breachRot = -0.62F * Mth.cos(bp * (float) Math.PI);
+                body.xRot = Mth.lerp(blend, swimRot, breachRot);
+                body.y += Mth.sin(swim) * 0.75F * (1.0F - blend * 0.6F);
                 if (body.hasChild("head") && body.getChild("head").hasChild("jaw")) {
                     ModelPart jaw = body.getChild("head").getChild("jaw");
                     jaw.xRot = (state.feedingProgress * 0.44F) + 0.02F + Mth.sin(swim * 0.5F) * 0.015F;
                 }
                 if (body.hasChild("tail_1")) {
                     ModelPart t1 = body.getChild("tail_1");
-                    t1.xRot = Mth.sin(swim - 0.4F) * (0.15F + 0.18F * bp);
+                    t1.xRot = Mth.sin(swim - 0.4F) * (0.15F + 0.16F * blend);
                     if (t1.hasChild("tail_2")) {
                         ModelPart t2 = t1.getChild("tail_2");
-                        t2.xRot = Mth.sin(swim - 1.0F) * (0.22F + 0.24F * bp);
+                        t2.xRot = Mth.sin(swim - 1.0F) * (0.22F + 0.22F * blend);
                         if (t2.hasChild("tail_fluke")) t2.getChild("tail_fluke").xRot = Mth.sin(swim - 1.7F) * 0.30F;
                     }
                 }
                 if (body.hasChild("left_fin")) {
                     ModelPart lf = body.getChild("left_fin");
-                    lf.zRot = -0.22F - Mth.cos(swim * 0.75F) * 0.12F - 0.25F * bp;
+                    lf.zRot = -0.22F - Mth.cos(swim * 0.75F) * 0.12F - 0.22F * blend;
                     if (lf.hasChild("left_fin_tip")) lf.getChild("left_fin_tip").zRot = -0.08F - Mth.cos(swim * 0.75F - 0.6F) * 0.15F;
                 }
                 if (body.hasChild("right_fin")) {
                     ModelPart rf = body.getChild("right_fin");
-                    rf.zRot = 0.22F + Mth.cos(swim * 0.75F) * 0.12F + 0.25F * bp;
+                    rf.zRot = 0.22F + Mth.cos(swim * 0.75F) * 0.12F + 0.22F * blend;
                     if (rf.hasChild("right_fin_tip")) rf.getChild("right_fin_tip").zRot = 0.08F + Mth.cos(swim * 0.75F - 0.6F) * 0.15F;
                 }
+            }
+
             } else if (animalType.equals("stingray") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
                 float swim = age * 0.13F + t * 0.32F;
