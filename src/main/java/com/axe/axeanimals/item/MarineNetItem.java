@@ -99,12 +99,13 @@ public class MarineNetItem extends Item {
         return releaseEntity(context.getLevel(), context.getPlayer(), stack, spawnPos);
     }
 
-       private InteractionResult releaseEntity(Level level, Player player, ItemStack stack, BlockPos pos) {
+    private InteractionResult releaseEntity(Level level, Player player, ItemStack stack, BlockPos pos) {
         if (!level.isClientSide() && level instanceof ServerLevel serverLevel) {
             CustomData data = stack.get(DataComponents.CUSTOM_DATA);
             if (data != null) {
                 CompoundTag tag = data.copyTag().getCompoundOrEmpty("CapturedEntity");
-                Entity entity = EntityType.loadEntityRecursive(tag, serverLevel, EntitySpawnReason.BUCKET, e -> e);
+                ValueInput input = TagValueInput.create(ProblemReporter.DISCARDING, serverLevel.registryAccess(), tag);
+                Entity entity = EntityType.loadEntityRecursive(input, serverLevel, EntitySpawnReason.BUCKET, e -> e);
                 if (entity != null) {
                     entity.snapTo(pos.getX() + 0.5D, pos.getY() + 0.1D, pos.getZ() + 0.5D, player != null ? player.getYRot() : 0.0F, 0.0F);
                     serverLevel.addFreshEntity(entity);
@@ -115,6 +116,7 @@ public class MarineNetItem extends Item {
         }
         return InteractionResult.SUCCESS;
     }
+
 
 
     @Override
