@@ -18,7 +18,7 @@ import net.minecraft.world.entity.ai.control.SmoothSwimmingMoveControl;
 import net.minecraft.world.entity.ai.goal.RandomSwimmingGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.navigation.WaterBoundPathNavigation;
-import net.minecraft.world.entity.animal.WaterAnimal;
+import net.minecraft.world.entity.animal.fish.WaterAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -72,7 +72,7 @@ public class StingrayEntity extends WaterAnimal {
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!this.isBaby() && stack.is(Items.TROPICAL_FISH) && this.breedCooldown <= 0) {
+        if (!this.isBaby() && stack.is(Items.TROPICAL_FISH) && this.breedCooldown == 0) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 this.breedCooldown = 6000;
@@ -94,10 +94,10 @@ public class StingrayEntity extends WaterAnimal {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
-            if (this.breedCooldown > 0) this.breedCooldown--;
-            if (this.isBaby() && this.babyGrowTicks > 0) {
+            if (this.breedCooldown != 0) this.breedCooldown--;
+            if (this.isBaby() && this.babyGrowTicks != 0) {
                 this.babyGrowTicks--;
-                if (this.babyGrowTicks <= 0) this.setBabyRay(false);
+                if (this.babyGrowTicks == 0) this.setBabyRay(false);
             }
         }
     }
