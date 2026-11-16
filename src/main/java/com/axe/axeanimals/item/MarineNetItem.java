@@ -31,9 +31,13 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class MarineNetItem extends Item {
@@ -41,23 +45,15 @@ public class MarineNetItem extends Item {
         super(properties);
     }
 
-    @Override
-    public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity target, InteractionHand hand) {
-        CustomData existing = stack.get(DataComponents.CUSTOM_DATA);
-        if (existing != null && existing.copyTag().contains("CapturedEntity")) {
-            return InteractionResult.PASS;
-        }
-
-        boolean canCatch = (target instanceof WhaleEntity w && (w.isBaby() || Float.compare(w.getGrowthProgress(), 0.99F) == -1))
+    private boolean isCatchable(Entity target) {
+        return (target instanceof WhaleEntity w && (w.isBaby() || Float.compare(w.getGrowthProgress(), 0.99F) == -1))
                 || target instanceof StingrayEntity
                 || target instanceof Dolphin
                 || target instanceof Squid
                 || target instanceof AbstractFish;
+    }
 
-        if (!canCatch) {
-            return InteractionResult.PASS;
-        }
-
+    private boolean catchEntity(Player player, InteractionHand hand, ItemStack stack, LivingEntity target) {
         if (!player.level().isClientSide()) {
             TagValueOutput out = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, player.registryAccess());
             if (target.saveAsPassenger(out)) {
@@ -69,8 +65,22 @@ public class MarineNetItem extends Item {
                 player.setItemInHand(hand, updated);
                 target.discard();
                 player.level().playSound(null, player.blockPosition(), SoundEvents.FISHING_BOBBER_RETRIEVE, SoundSource.PLAYERS, 1.0F, 0.9F);
+                return true;
             }
         }
+        return true;
+    }
+
+    @Override
+    public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity target, InteractionHand hand) {
+        CustomData existing = stack.get(DataComponents.CUSTOM_DATA);
+        if (existing != null && existing.copyTag().contains("CapturedEntity")) {
+            return InteractionResult.PASS;
+        }
+        if (!isCatchable(target)) {
+            return InteractionResult.PASS;
+        }
+        catchEntity(player, hand, stack, target);
         return InteractionResult.SUCCESS;
     }
 
@@ -78,7 +88,22 @@ public class MarineNetItem extends Item {
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+
+        // Если сеть пуста — проверяем клик по длинному хитбоксу китёнка/ската в радиусе 8 блоков по взгляду
         if (data == null || !data.copyTag().contains("CapturedEntity")) {
+            Vec3 eye = player.getEyePosition();
+            Vec3 look = player.getLookAngle();
+            Vec3 end = eye.add(look.scale(8.5D));
+            AABB searchBox = player.getBoundingBox().expandTowards(look.scale(8.5D)).inflate(2.0D);
+            List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e != player && isCatchable(e));
+            LivingEntity best = candidates.stream()
+                    .filter(e -> e.getBoundingBox().inflate(1.2D).clip(eye, end).isPresent())
+                    .min(Comparator.comparingDouble(e -> e.distanceToSqr(player)))
+                    .orElse(null);
+            if (best != null) {
+                catchEntity(player, hand, stack, best);
+                return InteractionResult.SUCCESS;
+            }
             return InteractionResult.PASS;
         }
 
