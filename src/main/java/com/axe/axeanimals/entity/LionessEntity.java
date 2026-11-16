@@ -1,6 +1,9 @@
 package com.axe.axeanimals.entity;
 
 import com.axe.axeanimals.registry.ModEntities;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -22,8 +25,8 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 public class LionessEntity extends TamableAnimal {
+    private static final EntityDataAccessor<Integer> STRETCH_TICKS = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.INT);
     public final AnimationState stretchState = new AnimationState();
-    private int stretchTimer = 0;
 
     public LionessEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -34,6 +37,12 @@ public class LionessEntity extends TamableAnimal {
                 .add(Attributes.MAX_HEALTH, 32.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.33D)
                 .add(Attributes.ATTACK_DAMAGE, 7.0D);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(STRETCH_TICKS, 0);
     }
 
     @Override
@@ -79,21 +88,19 @@ public class LionessEntity extends TamableAnimal {
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide()) {
-            if (this.stretchTimer != 0) {
-                this.stretchTimer--;
-                if (this.stretchTimer == 0) {
-                    this.stretchState.stop();
-                }
-            } else if (!this.isBaby() && !this.isOrderedToSit() && Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.0005D) == -1 && this.random.nextInt(240) == 0) {
-                this.stretchTimer = 50;
-                this.stretchState.start(this.tickCount);
+        if (!this.level().isClientSide()) {
+            int st = this.entityData.get(STRETCH_TICKS);
+            if (st != 0) {
+                this.entityData.set(STRETCH_TICKS, st - 1);
+            } else if (!this.isBaby() && !this.isInWater() && this.onGround() && !this.isOrderedToSit()
+                    && Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.0005D) == -1 && this.random.nextInt(240) == 0) {
+                this.entityData.set(STRETCH_TICKS, 50);
             }
         }
     }
 
     public boolean isStretchingNow() {
-        return this.stretchTimer != 0;
+        return this.entityData.get(STRETCH_TICKS) != 0;
     }
 
     @Override
