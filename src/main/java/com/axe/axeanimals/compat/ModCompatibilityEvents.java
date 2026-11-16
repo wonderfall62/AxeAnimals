@@ -6,6 +6,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -22,7 +23,6 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import java.util.List;
 
 public class ModCompatibilityEvents {
-
 
     @SubscribeEvent
     public static void onMobFinalizeSpawn(FinalizeSpawnEvent event) {
@@ -43,7 +43,6 @@ public class ModCompatibilityEvents {
             }
         }
     }
-
 
     @SubscribeEvent
     public static void onDolphinInteract(PlayerInteractEvent.EntityInteract event) {
@@ -79,6 +78,17 @@ public class ModCompatibilityEvents {
                 dolphin.getPersistentData().putInt("AxeBreedCD", cd - 1);
             }
 
+            // Мягкое отталкивание, чтобы дельфины не бились о хитбокс китов
+            List<WhaleEntity> veryClose = dolphin.level().getEntitiesOfClass(WhaleEntity.class, dolphin.getBoundingBox().inflate(5.5D));
+            if (!veryClose.isEmpty()) {
+                WhaleEntity nearest = veryClose.getFirst();
+                Vec3 away = dolphin.position().subtract(nearest.position());
+                if (Double.compare(away.lengthSqr(), 0.01D) == 1) {
+                    Vec3 push = away.normalize().scale(0.18D);
+                    dolphin.setDeltaMovement(push.x, dolphin.getDeltaMovement().y, push.z);
+                }
+            }
+
             int whalePlay = dolphin.getPersistentData().getIntOr("AxeWhalePlay", 0);
             int whaleCD = dolphin.getPersistentData().getIntOr("AxeWhaleCD", 0);
             if (whaleCD != 0) {
@@ -90,8 +100,10 @@ public class ModCompatibilityEvents {
                 List<WhaleEntity> whales = dolphin.level().getEntitiesOfClass(WhaleEntity.class, dolphin.getBoundingBox().inflate(24.0D));
                 if (!whales.isEmpty()) {
                     WhaleEntity w = whales.getFirst();
-                    if (Double.compare(dolphin.distanceToSqr(w), 25.0D) == 1) {
-                        dolphin.getNavigation().moveTo(w, 1.25D);
+                    double distSq = dolphin.distanceToSqr(w);
+                    if (Double.compare(distSq, 64.0D) == 1) {
+                        Vec3 side = new Vec3(-w.getLookAngle().z, 0, w.getLookAngle().x).normalize().scale(6.5D);
+                        dolphin.getNavigation().moveTo(w.getX() + side.x, w.getY(), w.getZ() + side.z, 1.2D);
                     }
                 }
                 if (whalePlay - 1 == 0) {
@@ -109,6 +121,19 @@ public class ModCompatibilityEvents {
         Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         String ns = id.getNamespace();
         String path = id.getPath();
+
+        // Гиппокампы из Ice and Fire держатся под водой, если на них не сидит игрок
+        if (ns.equals("iceandfire") && path.contains("hippocampus")) {
+            if (!entity.isVehicle() && entity.isInWater()) {
+                boolean nearSurface = !entity.level().getFluidState(entity.blockPosition().above()).is(FluidTags.WATER);
+                boolean deepBelow = entity.level().getFluidState(entity.blockPosition().below(2)).is(FluidTags.WATER);
+                if (nearSurface && deepBelow) {
+                    Vec3 m = entity.getDeltaMovement();
+                    entity.setDeltaMovement(m.x, Math.min(m.y, -0.06D), m.z);
+                }
+            }
+            return;
+        }
 
         if ((ns.equals("reanimal") && path.contains("butterfly")) || (ns.equals("iceandfire") && path.contains("pixie"))) {
             if (entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below()).isEmpty()) {
