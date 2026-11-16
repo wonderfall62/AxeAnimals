@@ -27,8 +27,9 @@ public class AxeAnimalsClient {
 
     public static class AnimalRenderState extends LivingEntityRenderState {
         public boolean isStanding = false;
-        public boolean isBreaching = false;
-        public boolean isFeeding = false;
+        public boolean isInWater = false;
+        public float breachProgress = 0.0F;
+        public float feedingProgress = 0.0F;
         public boolean isRoaring = false;
         public boolean isStretching = false;
         public boolean isBaby = false;
@@ -56,24 +57,24 @@ public class AxeAnimalsClient {
 
             if (animalType.equals("ferret") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
-                if (state.isStanding) {
-                    body.y -= 4.2F;
-                    body.xRot = -1.42F;
+                if (state.isStanding && !state.isInWater) {
+                    body.y -= 1.35F;
+                    body.xRot = -1.25F;
                     if (body.hasChild("leg_fl")) {
-                        body.getChild("leg_fl").xRot = 1.25F;
+                        body.getChild("leg_fl").xRot = 1.15F;
                         body.getChild("leg_fl").zRot = -0.25F;
                     }
                     if (body.hasChild("leg_fr")) {
-                        body.getChild("leg_fr").xRot = 1.25F;
+                        body.getChild("leg_fr").xRot = 1.15F;
                         body.getChild("leg_fr").zRot = 0.25F;
                     }
                     if (body.hasChild("hip")) {
                         ModelPart hip = body.getChild("hip");
                         hip.xRot = 0.15F;
-                        if (hip.hasChild("leg_bl")) hip.getChild("leg_bl").xRot = 1.27F;
-                        if (hip.hasChild("leg_br")) hip.getChild("leg_br").xRot = 1.27F;
+                        if (hip.hasChild("leg_bl")) hip.getChild("leg_bl").xRot = 1.10F;
+                        if (hip.hasChild("leg_br")) hip.getChild("leg_br").xRot = 1.10F;
                         if (hip.hasChild("tail_base")) {
-                            hip.getChild("tail_base").xRot = 1.25F;
+                            hip.getChild("tail_base").xRot = 1.10F;
                             if (hip.getChild("tail_base").hasChild("tail_tip")) {
                                 hip.getChild("tail_base").getChild("tail_tip").xRot = 0.20F;
                             }
@@ -81,18 +82,18 @@ public class AxeAnimalsClient {
                     }
                     if (body.hasChild("neck")) {
                         ModelPart neck = body.getChild("neck");
-                        neck.xRot = 0.72F;
+                        neck.xRot = 0.65F;
                         if (neck.hasChild("head")) {
                             ModelPart head = neck.getChild("head");
-                            head.xRot = 0.65F + state.xRot * ((float) Math.PI / 180F) * 0.4F;
+                            head.xRot = 0.60F + state.xRot * ((float) Math.PI / 180F) * 0.4F;
                             head.yRot = Mth.sin(age * 0.14F) * 0.35F;
                         }
                     }
                 } else {
                     float fPos = t * 1.25F;
-                    float fSpeed = Math.min(speed * 1.35F, 1.1F);
+                    float fSpeed = state.isInWater ? 0.65F : Math.min(speed * 1.35F, 1.1F);
                     float wave = Mth.sin(fPos * 0.85F);
-                    body.y -= Math.abs(wave) * 0.55F * fSpeed;
+                    body.y += state.isInWater ? 1.5F : (-Math.abs(wave) * 0.55F * fSpeed);
                     body.xRot = wave * 0.14F * fSpeed;
 
                     if (body.hasChild("leg_fl")) {
@@ -137,29 +138,30 @@ public class AxeAnimalsClient {
             else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
                 float swim = age * 0.065F + t * 0.22F;
-                body.xRot = state.isBreaching ? -0.58F : Mth.sin(swim) * 0.045F;
+                float bp = state.breachProgress;
+                body.xRot = (bp > 0.01F) ? (-0.68F * bp + Mth.cos(bp * (float) Math.PI) * 0.25F) : (Mth.sin(swim) * 0.045F);
                 body.y += Mth.sin(swim) * 0.75F;
                 if (body.hasChild("head") && body.getChild("head").hasChild("jaw")) {
                     ModelPart jaw = body.getChild("head").getChild("jaw");
-                    jaw.xRot = state.isFeeding ? (0.38F + Mth.sin(age * 0.35F) * 0.08F) : (0.03F + Mth.sin(swim * 0.5F) * 0.02F);
+                    jaw.xRot = (state.feedingProgress * 0.44F) + 0.02F + Mth.sin(swim * 0.5F) * 0.015F;
                 }
                 if (body.hasChild("tail_1")) {
                     ModelPart t1 = body.getChild("tail_1");
-                    t1.xRot = Mth.sin(swim - 0.4F) * (state.isBreaching ? 0.26F : 0.15F);
+                    t1.xRot = Mth.sin(swim - 0.4F) * (0.15F + 0.18F * bp);
                     if (t1.hasChild("tail_2")) {
                         ModelPart t2 = t1.getChild("tail_2");
-                        t2.xRot = Mth.sin(swim - 1.0F) * (state.isBreaching ? 0.34F : 0.22F);
+                        t2.xRot = Mth.sin(swim - 1.0F) * (0.22F + 0.24F * bp);
                         if (t2.hasChild("tail_fluke")) t2.getChild("tail_fluke").xRot = Mth.sin(swim - 1.7F) * 0.30F;
                     }
                 }
                 if (body.hasChild("left_fin")) {
                     ModelPart lf = body.getChild("left_fin");
-                    lf.zRot = -0.22F - Mth.cos(swim * 0.75F) * 0.12F;
+                    lf.zRot = -0.22F - Mth.cos(swim * 0.75F) * 0.12F - 0.25F * bp;
                     if (lf.hasChild("left_fin_tip")) lf.getChild("left_fin_tip").zRot = -0.08F - Mth.cos(swim * 0.75F - 0.6F) * 0.15F;
                 }
                 if (body.hasChild("right_fin")) {
                     ModelPart rf = body.getChild("right_fin");
-                    rf.zRot = 0.22F + Mth.cos(swim * 0.75F) * 0.12F;
+                    rf.zRot = 0.22F + Mth.cos(swim * 0.75F) * 0.12F + 0.25F * bp;
                     if (rf.hasChild("right_fin_tip")) rf.getChild("right_fin_tip").zRot = 0.08F + Mth.cos(swim * 0.75F - 0.6F) * 0.15F;
                 }
             } else if (animalType.equals("stingray") && this.rootPart.hasChild("body")) {
@@ -183,7 +185,7 @@ public class AxeAnimalsClient {
                 }
             } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
-                if (state.isStretching) {
+                if (state.isStretching && !state.isInWater) {
                     body.y += 2.2F;
                     body.xRot = 0.32F;
                     if (body.hasChild("neck")) {
@@ -201,25 +203,26 @@ public class AxeAnimalsClient {
                         if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").xRot = 0.45F;
                     }
                 } else {
-                    float lPos = t * 0.66F;
-                    body.y -= Math.abs(Mth.sin(lPos)) * 0.32F * speed;
-                    body.zRot = Mth.cos(lPos) * 0.035F * speed;
+                    float lPos = state.isInWater ? (age * 0.25F) : (t * 0.66F);
+                    float lSpeed = state.isInWater ? 0.65F : speed;
+                    body.y += state.isInWater ? 4.5F : (-Math.abs(Mth.sin(lPos)) * 0.32F * lSpeed);
+                    body.zRot = Mth.cos(lPos) * 0.035F * lSpeed;
                     if (body.hasChild("neck")) {
                         ModelPart neck = body.getChild("neck");
-                        neck.xRot = state.isRoaring ? -0.28F : (Math.abs(Mth.sin(lPos)) * 0.05F * speed);
+                        neck.xRot = (state.isRoaring && !state.isInWater) ? -0.28F : (Math.abs(Mth.sin(lPos)) * 0.05F * lSpeed);
                         if (neck.hasChild("head")) {
                             ModelPart head = neck.getChild("head");
-                            head.xRot = state.isRoaring ? -0.32F : (state.xRot * ((float) Math.PI / 180F) * 0.65F);
-                            head.yRot = state.isRoaring ? (Mth.sin(age * 0.25F) * 0.12F) : (state.yRot * ((float) Math.PI / 180F) * 0.65F);
+                            head.xRot = (state.isRoaring && !state.isInWater) ? -0.32F : (state.xRot * ((float) Math.PI / 180F) * 0.65F);
+                            head.yRot = (state.isRoaring && !state.isInWater) ? (Mth.sin(age * 0.25F) * 0.12F) : (state.yRot * ((float) Math.PI / 180F) * 0.65F);
                             if (head.hasChild("jaw")) {
-                                head.getChild("jaw").xRot = state.isRoaring ? (0.48F + Mth.sin(age * 0.4F) * 0.08F) : 0.03F;
+                                head.getChild("jaw").xRot = (state.isRoaring && !state.isInWater) ? (0.48F + Mth.sin(age * 0.4F) * 0.08F) : 0.03F;
                             }
                         }
                     }
-                    if (body.hasChild("leg_front_left")) body.getChild("leg_front_left").xRot = Mth.cos(lPos) * 0.72F * speed;
-                    if (body.hasChild("leg_front_right")) body.getChild("leg_front_right").xRot = Mth.cos(lPos + (float) Math.PI) * 0.72F * speed;
-                    if (body.hasChild("leg_back_left")) body.getChild("leg_back_left").xRot = Mth.cos(lPos + (float) Math.PI) * 0.72F * speed;
-                    if (body.hasChild("leg_back_right")) body.getChild("leg_back_right").xRot = Mth.cos(lPos) * 0.72F * speed;
+                    if (body.hasChild("leg_front_left")) body.getChild("leg_front_left").xRot = Mth.cos(lPos) * 0.72F * lSpeed;
+                    if (body.hasChild("leg_front_right")) body.getChild("leg_front_right").xRot = Mth.cos(lPos + (float) Math.PI) * 0.72F * lSpeed;
+                    if (body.hasChild("leg_back_left")) body.getChild("leg_back_left").xRot = Mth.cos(lPos + (float) Math.PI) * 0.72F * lSpeed;
+                    if (body.hasChild("leg_back_right")) body.getChild("leg_back_right").xRot = Mth.cos(lPos) * 0.72F * lSpeed;
                     if (body.hasChild("tail_base")) {
                         ModelPart tb = body.getChild("tail_base");
                         tb.xRot = -0.55F;
@@ -244,7 +247,11 @@ public class AxeAnimalsClient {
         event.registerEntityRenderer(ModEntities.FERRET.get(), ctx -> new MobRenderer<FerretEntity, AnimalRenderState, AnimatedAnimalModel>(ctx, new AnimatedAnimalModel(ctx.bakeLayer(FERRET_LAYER), "ferret"), 0.35F) {
             @Override public Identifier getTextureLocation(AnimalRenderState s) { return Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "textures/entity/ferret.png"); }
             @Override public AnimalRenderState createRenderState() { return new AnimalRenderState(); }
-            @Override public void extractRenderState(FerretEntity e, AnimalRenderState s, float pt) { super.extractRenderState(e, s, pt); s.isStanding = e.standUprightState.isStarted(); }
+            @Override public void extractRenderState(FerretEntity e, AnimalRenderState s, float pt) {
+                super.extractRenderState(e, s, pt);
+                s.isStanding = e.standUprightState.isStarted();
+                s.isInWater = e.isInWater();
+            }
         });
 
         event.registerEntityRenderer(ModEntities.WHALE.get(), ctx -> new MobRenderer<WhaleEntity, AnimalRenderState, AnimatedAnimalModel>(ctx, new AnimatedAnimalModel(ctx.bakeLayer(WHALE_LAYER), "whale"), 1.6F) {
@@ -252,8 +259,8 @@ public class AxeAnimalsClient {
             @Override public AnimalRenderState createRenderState() { return new AnimalRenderState(); }
             @Override public void extractRenderState(WhaleEntity e, AnimalRenderState s, float pt) {
                 super.extractRenderState(e, s, pt);
-                s.isBreaching = e.isBreachingNow();
-                s.isFeeding = e.isFeedingNow();
+                s.breachProgress = e.getBreachProgress();
+                s.feedingProgress = e.getFeedingProgress();
                 s.isBaby = e.isBaby();
                 s.growthProgress = e.getGrowthProgress();
             }
@@ -274,6 +281,7 @@ public class AxeAnimalsClient {
             @Override public void extractRenderState(LionEntity e, AnimalRenderState s, float pt) {
                 super.extractRenderState(e, s, pt);
                 s.isRoaring = e.isRoaringNow();
+                s.isInWater = e.isInWater();
             }
         });
 
@@ -283,6 +291,7 @@ public class AxeAnimalsClient {
             @Override public void extractRenderState(LionessEntity e, AnimalRenderState s, float pt) {
                 super.extractRenderState(e, s, pt);
                 s.isStretching = e.isStretchingNow();
+                s.isInWater = e.isInWater();
             }
         });
     }
