@@ -47,7 +47,10 @@ public class StingrayEntity extends WaterAnimal {
                 .add(Attributes.MAX_HEALTH, 14.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.9D);
     }
-
+  @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false;
+    }
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
