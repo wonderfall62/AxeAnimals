@@ -72,14 +72,14 @@ public class ModCompatibilityEvents {
         }
     }
 
-     @SubscribeEvent
+    @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         Player player = event.getEntity();
         if (player.level().isClientSide() || !(player.level() instanceof ServerLevel serverLevel)) return;
-        if (player.tickCount % 400 != 0) return;
+        if (player.tickCount < 600 || player.tickCount % 600 != 0) return;
         if (Float.compare(serverLevel.getRandom().nextFloat(), 0.12F) != -1) return;
 
-        List<Entity> existingDragons = serverLevel.getEntities(player, new AABB(player.blockPosition()).inflate(220.0D), e -> {
+        List<Entity> existingDragons = serverLevel.getEntities(player, new AABB(player.blockPosition()).inflate(96.0D), e -> {
             Identifier k = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());
             return k.getNamespace().equals("iceandfire") && k.getPath().contains("dragon") && !k.getPath().contains("egg") && !k.getPath().contains("skull");
         });
