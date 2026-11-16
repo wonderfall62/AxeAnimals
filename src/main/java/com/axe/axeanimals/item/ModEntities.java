@@ -30,7 +30,7 @@ public class ModEntities {
 
     public static final DeferredHolder<EntityType<?>, EntityType<WhaleEntity>> WHALE = ENTITIES.register("whale",
             () -> EntityType.Builder.of(WhaleEntity::new, MobCategory.WATER_CREATURE)
-                    .sized(3.8F, 2.2F)
+                    .sized(5.6F, 2.8F)
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "whale"))));
 
     public static final DeferredHolder<EntityType<?>, EntityType<StingrayEntity>> STINGRAY = ENTITIES.register("stingray",
