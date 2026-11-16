@@ -98,7 +98,7 @@ public class LionEntity extends TamableAnimal {
     @Nullable
     @Override
     public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
-        return level.random.nextBoolean()
+        return level.getRandom().nextBoolean()
                 ? ModEntities.LION.get().create(level, EntitySpawnReason.BREEDING)
                 : ModEntities.LIONESS.get().create(level, EntitySpawnReason.BREEDING);
     }
