@@ -73,12 +73,12 @@ public class ModCompatibilityEvents {
         }
     }
 
-    @SubscribeEvent
+     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         Player player = event.getEntity();
         if (player.level().isClientSide() || !(player.level() instanceof ServerLevel serverLevel)) return;
         if (player.tickCount % 400 != 0) return;
-        if (Float.compare(serverLevel.random.nextFloat(), 0.12F) != -1) return;
+        if (Float.compare(serverLevel.getRandom().nextFloat(), 0.12F) != -1) return;
 
         List<Entity> existingDragons = serverLevel.getEntities(player, new AABB(player.blockPosition()).inflate(220.0D), e -> {
             Identifier k = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());
@@ -86,8 +86,8 @@ public class ModCompatibilityEvents {
         });
         if (!existingDragons.isEmpty()) return;
 
-        double angle = serverLevel.random.nextDouble() * Math.PI * 2.0D;
-        double dist = 80.0D + serverLevel.random.nextDouble() * 35.0D;
+        double angle = serverLevel.getRandom().nextDouble() * Math.PI * 2.0D;
+        double dist = 80.0D + serverLevel.getRandom().nextDouble() * 35.0D;
         int x = (int) (player.getX() + Math.cos(angle) * dist);
         int z = (int) (player.getZ() + Math.sin(angle) * dist);
         if (!serverLevel.isLoaded(new BlockPos(x, 64, z))) return;
@@ -104,11 +104,12 @@ public class ModCompatibilityEvents {
         if (type != null) {
             Entity dragon = type.create(serverLevel, EntitySpawnReason.NATURAL);
             if (dragon != null) {
-                dragon.snapTo(x + 0.5D, y + 1.0D, z + 0.5D, serverLevel.random.nextFloat() * 360.0F, 0.0F);
+                dragon.snapTo(x + 0.5D, y + 1.0D, z + 0.5D, serverLevel.getRandom().nextFloat() * 360.0F, 0.0F);
                 serverLevel.addFreshEntity(dragon);
             }
         }
     }
+
     @SubscribeEvent
     public static void onEntityTick(EntityTickEvent.Post event) {
         Entity entity = event.getEntity();
