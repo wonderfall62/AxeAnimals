@@ -282,7 +282,8 @@ public class WhaleEntity extends WaterAnimal {
                     sl.sendParticles(ParticleTypes.SPLASH, bx, by + h * 0.55D, bz, 12, 0.25D + h * 0.08D, 0.2D, 0.25D + h * 0.08D, 0.15D);
                     sl.sendParticles(ParticleTypes.CLOUD, bx, by + h * 0.55D, bz, 2, 0.18D + h * 0.06D, 0.15D, 0.18D + h * 0.06D, 0.03D);
                 }
-                this.playSound(SoundEvents.DOLPHIN_BLOWHOLE, 1.6F, 0.45F);
+                this.playSound(SoundEvents.DOLPHIN_SPLASH, 1.6F, 0.55F);
+
             }
 
             if (this.escortCooldown != 0) this.escortCooldown--;
