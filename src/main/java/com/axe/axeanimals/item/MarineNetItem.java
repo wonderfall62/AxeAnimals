@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -27,16 +28,17 @@ import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import net.minecraft.util.ProblemReporter;
 
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class SeaNetItem extends Item {
-    public SeaNetItem(Properties properties) {
+public class MarineNetItem extends Item {
+    public MarineNetItem(Properties properties) {
         super(properties);
     }
 
@@ -102,7 +104,8 @@ public class SeaNetItem extends Item {
             CustomData data = stack.get(DataComponents.CUSTOM_DATA);
             if (data != null) {
                 CompoundTag tag = data.copyTag().getCompoundOrEmpty("CapturedEntity");
-                Optional<Entity> loaded = EntityType.create(tag, serverLevel, EntitySpawnReason.BUCKET);
+                ValueInput input = TagValueInput.create(ProblemReporter.DISCARDING, serverLevel.registryAccess(), tag);
+                Optional<Entity> loaded = EntityType.create(input, serverLevel, EntitySpawnReason.BUCKET);
                 if (loaded.isPresent()) {
                     Entity entity = loaded.get();
                     entity.snapTo(pos.getX() + 0.5D, pos.getY() + 0.1D, pos.getZ() + 0.5D, player != null ? player.getYRot() : 0.0F, 0.0F);
