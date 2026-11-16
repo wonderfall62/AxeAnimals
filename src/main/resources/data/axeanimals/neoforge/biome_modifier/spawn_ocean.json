@@ -21,7 +21,7 @@
     },
     {
       "type": "axeanimals:stingray",
-      "weight": 3,
+      "weight": 10,
       "count": {
         "type": "minecraft:uniform",
         "min_inclusive": 1,
