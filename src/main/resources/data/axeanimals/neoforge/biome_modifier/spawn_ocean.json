@@ -16,16 +16,12 @@
   "spawners": [
     {
       "type": "axeanimals:whale",
-      "weight": 5,
-      "count": {
-        "type": "minecraft:uniform",
-        "min_inclusive": 1,
-        "max_inclusive": 2
-      }
+      "weight": 6,
+      "count": 1
     },
     {
       "type": "axeanimals:stingray",
-      "weight": 10,
+      "weight": 3,
       "count": {
         "type": "minecraft:uniform",
         "min_inclusive": 1,
