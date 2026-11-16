@@ -1,6 +1,6 @@
 package com.axe.axeanimals.client.model;
 
-import com.axe.axeanimals.client.renderer.state.WhaleRenderState;
+import com.axe.axeanimals.client.renderer.WhaleRenderState;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
