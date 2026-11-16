@@ -188,8 +188,53 @@ public class WhaleEntity extends WaterAnimal {
             // Защита от застревания на мелководье или над водой
             BlockPos pos = this.blockPosition();
             boolean shallow = !this.level().getFluidState(pos.below(2)).is(FluidTags.WATER);
-            if ((!this.isInWater() && !this.isBreachingNow()) || (shallow && this.tickCount % 20 == 0)) {
-                for (int r = 3; r  boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(24.0D));
+                        if ((!this.isInWater() && !this.isBreachingNow()) || (shallow && this.tickCount % 20 == 0)) {
+                for (int r = 3; r != 15; r += 3) {
+                    BlockPos best = null;
+                    for (int dx = -r; dx != r + r; dx += r) {
+                        for (int dz = -r; dz != r + r; dz += r) {
+                            BlockPos check = pos.offset(dx, -1, dz);
+                            if (this.level().getFluidState(check).is(FluidTags.WATER) && this.level().getFluidState(check.below(2)).is(FluidTags.WATER)) {
+                                best = check;
+                                break;
+                            }
+                        }
+                        if (best != null) break;
+                    }
+                    if (best != null) {
+                        Vec3 dir = Vec3.atCenterOf(best).subtract(this.position()).normalize();
+                        this.setDeltaMovement(dir.x * 0.25D, -0.12D, dir.z * 0.25D);
+                        this.getNavigation().moveTo(best.getX(), best.getY(), best.getZ(), 1.15D);
+                        break;
+                    }
+                }
+            }
+
+            if (this.isBaby() && this.babyGrowTicks != 0) {
+                this.babyGrowTicks--;
+                if (this.babyGrowTicks % 200 == 0) {
+                    float progress = 1.0F - ((float) this.babyGrowTicks / (float) MAX_GROW_TICKS);
+                    this.entityData.set(GROWTH_PROGRESS, Math.max(0.0F, Math.min(1.0F, progress)));
+                }
+                if (this.babyGrowTicks == 0) this.setBabyWhale(false);
+            }
+
+            if (this.pregnancyTicks != 0) {
+                this.pregnancyTicks--;
+                if (this.pregnancyTicks == 0) {
+                    WhaleEntity calf = ModEntities.WHALE.get().create(this.level(), EntitySpawnReason.BREEDING);
+                    if (calf != null) {
+                        calf.setBabyWhale(true);
+                        calf.snapTo(this.getX() + 3.0, this.getY(), this.getZ() + 3.0, this.getYRot(), 0);
+                        this.level().addFreshEntity(calf);
+                    }
+                }
+            }
+
+            if (this.escortCooldown != 0) this.escortCooldown--;
+            if (this.escortTicks != 0) {
+                this.escortTicks--;
+                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(24.0D));
                 if (!boats.isEmpty()) {
                     Boat targetBoat = boats.getFirst();
                     Vec3 forward = targetBoat.getLookAngle();
@@ -210,11 +255,12 @@ public class WhaleEntity extends WaterAnimal {
                         .forEach(d -> d.setDeltaMovement(d.position().subtract(this.position()).normalize().scale(0.35D)));
                 if (this.escortTicks == 0) this.escortCooldown = 14000;
             } else if (this.escortCooldown == 0 && this.tickCount % 60 == 0) {
-                List<Boat> boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(26.0D));
+                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(26.0D));
                 if (!boats.isEmpty()) {
                     this.escortTicks = 1800;
                 }
             }
+
 
             // Анимация 2: кормление / фонтан
             if (this.feedingTicks != 0) {
