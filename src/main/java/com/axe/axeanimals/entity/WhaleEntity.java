@@ -54,6 +54,8 @@ public class WhaleEntity extends WaterAnimal {
     private int babyGrowTicks = 0;
     private static final int MAX_GROW_TICKS = 60000;
     private int breachCooldown = 220;
+    private int escortTicks = 0;
+    private int escortCooldown = 0;
 
     public WhaleEntity(EntityType<? extends WaterAnimal> type, Level level) {
         super(type, level);
@@ -66,6 +68,11 @@ public class WhaleEntity extends WaterAnimal {
                 .add(Attributes.MAX_HEALTH, 110.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.80D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D);
+    }
+
+    @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false;
     }
 
     public static boolean checkWhaleSpawnRules(EntityType<WhaleEntity> type, ServerLevelAccessor level, EntitySpawnReason reason, BlockPos pos, RandomSource random) {
@@ -197,7 +204,6 @@ public class WhaleEntity extends WaterAnimal {
             boolean shallow = !this.level().getFluidState(pos.below(2)).is(FluidTags.WATER);
             boolean tooHighOnSurface = !this.level().getFluidState(pos.above(1)).is(FluidTags.WATER);
 
-            // Удерживаем кита в толще воды под поверхностью, чтобы спина не зависала над водой
             if (bTicks == 0 && tooHighOnSurface) {
                 Vec3 m = this.getDeltaMovement();
                 this.setDeltaMovement(m.x, Math.min(m.y, -0.08D), m.z);
@@ -246,18 +252,27 @@ public class WhaleEntity extends WaterAnimal {
                 }
             }
 
-            // Кит плавно обходит лодки стороной (на расстоянии 14 блоков), не сталкиваясь с ними
+            // Сопровождение лодки с того же борта (6.8 блоков сбоку), не пересекая курс перед носом лодки
+            if (this.escortCooldown != 0) this.escortCooldown--;
             var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(24.0D));
-            if (!boats.isEmpty()) {
-                Boat nearestBoat = boats.getFirst();
-                if (nearestBoat.getControllingPassenger() instanceof Player p) {
-                    p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, true, false));
+            if (this.escortTicks != 0) {
+                this.escortTicks--;
+                if (!boats.isEmpty()) {
+                    Boat targetBoat = boats.getFirst();
+                    Vec3 forward = targetBoat.getLookAngle();
+                    Vec3 toWhale = this.position().subtract(targetBoat.position());
+                    double sideSign = Double.compare(forward.x * toWhale.z - forward.z * toWhale.x, 0.0D) == -1 ? -1.0D : 1.0D;
+                    Vec3 side = new Vec3(-forward.z * sideSign, 0, forward.x * sideSign).normalize();
+                    Vec3 escortPos = targetBoat.position().add(side.scale(6.8D)).add(forward.scale(2.5D));
+
+                    this.getNavigation().moveTo(escortPos.x, targetBoat.getY() - 1.2D, escortPos.z, 1.15D);
+                    if (targetBoat.getControllingPassenger() instanceof Player p) {
+                        p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, true, false));
+                    }
                 }
-                if (Double.compare(this.distanceToSqr(nearestBoat), 144.0D) == -1 && this.tickCount % 15 == 0) {
-                    Vec3 away = this.position().subtract(nearestBoat.position()).normalize();
-                    Vec3 swimAway = this.position().add(away.scale(16.0D));
-                    this.getNavigation().moveTo(swimAway.x, this.getY() - 1.5D, swimAway.z, 1.1D);
-                }
+                if (this.escortTicks == 0) this.escortCooldown = 12000;
+            } else if (this.escortCooldown == 0 && !boats.isEmpty() && this.tickCount % 60 == 0) {
+                this.escortTicks = 1200;
             }
 
             this.level().getEntitiesOfClass(Drowned.class, this.getBoundingBox().inflate(18.0D))
@@ -268,16 +283,21 @@ public class WhaleEntity extends WaterAnimal {
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
-            // Прыжок по красивой дуге (нос вверх на взлёте -> нос вниз на нырке)
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-            } else if (this.isInWater() && !shallow && boats.isEmpty()) {
-                Vec3 look = this.getLookAngle();
-                this.setDeltaMovement(look.x * 0.45D, 0.92D, look.z * 0.45D);
-                this.entityData.set(BREACH_TICKS, 50);
-                this.breachCooldown = 500 + this.random.nextInt(400);
-                this.playSound(SoundEvents.GENERIC_SPLASH, 2.0F, 0.45F);
-                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 60, 3.0, 0.6, 3.0, 0.25);
+                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 280.0F) == 1) {
+                    this.breachCooldown = 220 + this.random.nextInt(100);
+                }
+            } else if (this.isInWater() && !shallow) {
+                var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(5.2D));
+                if (tooCloseBoats.isEmpty()) {
+                    Vec3 look = this.getLookAngle();
+                    this.setDeltaMovement(look.x * 0.45D, 0.92D, look.z * 0.45D);
+                    this.entityData.set(BREACH_TICKS, 50);
+                    this.breachCooldown = (this.escortTicks != 0) ? (260 + this.random.nextInt(140)) : (550 + this.random.nextInt(450));
+                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.0F, 0.45F);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 60, 3.0, 0.6, 3.0, 0.25);
+                }
             }
         }
     }
@@ -285,7 +305,7 @@ public class WhaleEntity extends WaterAnimal {
     @Nullable
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
-        if (!this.isBaby() && Float.compare(this.random.nextFloat(), 0.22F) == -1) {
+        if (!this.isBaby() && Float.compare(this.random.nextFloat(), 0.25F) == -1) {
             WhaleEntity calf = ModEntities.WHALE.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
             if (calf != null) {
                 calf.setBabyWhale(true);
