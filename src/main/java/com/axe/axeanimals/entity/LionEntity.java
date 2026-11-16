@@ -132,4 +132,24 @@ public class LionEntity extends TamableAnimal {
         }
         return super.finalizeSpawn(level, difficulty, reason, spawnData);
     }
+        @Override
+    protected net.minecraft.sounds.SoundEvent getAmbientSound() {
+        return net.minecraft.sounds.SoundEvents.RAVAGER_ROAR;
+    }
+
+    @Override
+    protected net.minecraft.sounds.SoundEvent getHurtSound(net.minecraft.world.damagesource.DamageSource source) {
+        return net.minecraft.sounds.SoundEvents.POLAR_BEAR_HURT;
+    }
+
+    @Override
+    protected net.minecraft.sounds.SoundEvent getDeathSound() {
+        return net.minecraft.sounds.SoundEvents.POLAR_BEAR_DEATH;
+    }
+
+    @Override
+    public float getVoicePitch() {
+        return this.isBaby() ? 1.4F : 0.65F;
+    }
+
 }
