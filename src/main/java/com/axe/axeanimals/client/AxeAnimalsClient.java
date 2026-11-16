@@ -185,78 +185,151 @@ public class AxeAnimalsClient {
                     ModelPart tb = body.getChild("tail_base");
                     tb.yRot = Mth.cos(swim * 0.7F) * 0.20F;
                     if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.cos(swim * 0.7F - 0.7F) * 0.28F;
-                }
-                   } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("Chest")) {
+                }            
+            } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("Chest")) {
                 ModelPart chest = this.rootPart.getChild("Chest");
-                ModelPart body = chest.hasChild("BackPoint") ? chest.getChild("BackPoint").getChild("Body") : chest.getChild("Body");
+                ModelPart backPoint = chest.getChild("BackPoint");
+                ModelPart body = backPoint.getChild("Body");
                 ModelPart hips = body.getChild("Hips");
                 ModelPart neck = chest.getChild("Neck");
                 ModelPart head = neck.getChild("Head");
                 ModelPart snout = head.getChild("Snout");
-                ModelPart mouth = snout.hasChild("Mouth") ? snout.getChild("Mouth") : head.getChild("Mouth");
-                ModelPart legParent = chest.hasChild("BackPoint") ? body : hips;
+                ModelPart mouth = snout.getChild("Mouth");
+                ModelPart tail1 = hips.getChild("Tail1");
+                ModelPart tail2 = tail1.getChild("Tail2");
+
+                ModelPart abl = chest.getChild("ArmBaseLeft");
+                ModelPart al = abl.getChild("ArmLeft");
+                ModelPart fal = al.getChild("ForearmLeft");
+                ModelPart hl = fal.getChild("HandLeft");
+
+                ModelPart abr = chest.getChild("ArmBaseRight");
+                ModelPart ar = abr.getChild("ArmRight");
+                ModelPart far = ar.getChild("ForearmRight");
+                ModelPart hr = far.getChild("HandRight");
+
+                ModelPart tl = body.getChild("ThighLeft");
+                ModelPart ull = tl.getChild("UpperLegLeft");
+                ModelPart lll = ull.getChild("LowerLegLeft");
+                ModelPart fl = lll.getChild("FootLeft");
+
+                ModelPart tr = body.getChild("ThighRight");
+                ModelPart ulr = tr.getChild("UpperLegRight");
+                ModelPart llr = ulr.getChild("LowerLegRight");
+                ModelPart fr = llr.getChild("FootRight");
 
                 if (state.isStretching && !state.isInWater) {
-                    chest.y += 2.2F;
+                    chest.y = 10.2F;
                     chest.xRot = 0.25F;
-                    neck.xRot = -0.55F;
-                    head.xRot = 0.15F;
-                    chest.getChild("ArmBaseLeft").xRot = -1.15F;
-                    chest.getChild("ArmBaseRight").xRot = -1.15F;
-                    legParent.getChild("ThighLeft").xRot = -0.35F;
-                    legParent.getChild("ThighRight").xRot = -0.35F;
-                    ModelPart t1 = hips.getChild("Tail1");
-                    t1.xRot = -0.35F;
-                    t1.getChild("Tail2").xRot = 0.45F;
+                    neck.xRot = -0.35F;
+                    head.xRot = -0.15F;
+                    abl.xRot = -0.95F;
+                    abr.xRot = -0.95F;
+                    tl.xRot = -0.35F;
+                    tr.xRot = -0.35F;
+                    tail1.xRot = 0.95F;
+                    tail2.xRot = 0.45F;
+                } else if (Float.compare(speed, 0.08F) == -1 && !state.isInWater) {
+                    float idleSpeed = 1.2F;
+                    float idleDeg = 1.0F;
+                    float idleSwing = age * 0.65F;
+                    chest.y = 8.0F;
+                    chest.xRot = -0.08726646F;
+                    backPoint.xRot = 0.0F;
+                    hips.xRot = -0.34906584F;
+
+                    neck.xRot = Mth.cos(6.0F + idleSwing * idleSpeed * 0.1F + (float) Math.PI) * (idleDeg * 0.1F) * 0.5F - 0.02F;
+                    head.xRot = Mth.cos(5.0F + idleSwing * idleSpeed * 0.1F + (float) Math.PI) * (idleDeg * -0.1F) * 0.5F + 0.12F
+                            + (state.isRoaring ? -0.35F : (state.xRot * ((float) Math.PI / 180F) * 0.25F));
+                    neck.yRot = state.yRot * ((float) Math.PI / 180F) * 0.75F;
+                    head.yRot = state.isRoaring ? (Mth.sin(age * 0.25F) * 0.12F) : (state.yRot * ((float) Math.PI / 180F) * 0.25F);
+                    mouth.xRot = state.isRoaring ? (0.48F + Mth.sin(age * 0.4F) * 0.08F) : 0.0F;
+
+                    tail1.xRot = Mth.cos(1.0F + idleSwing * idleSpeed * 0.1F + (float) Math.PI) * (idleDeg * 0.2F) * 0.5F + 0.56F;
+                    tail2.xRot = Mth.cos(5.0F + idleSwing * idleSpeed * 0.1F + (float) Math.PI) * (idleDeg * 0.4F) * 0.5F + 0.21F;
+                    tail1.zRot = Mth.cos(idleSwing * idleSpeed * 0.1F + (float) Math.PI) * (idleDeg * -0.5F) * 0.5F;
+                    tail2.zRot = Mth.cos(5.0F + idleSwing * idleSpeed * 0.1F + (float) Math.PI) * (idleDeg * -0.7F) * 0.5F;
+                } else if (Float.compare(speed, 0.72F) == 1 && !state.isInWater) {
+                    float lSwing = t;
+                    float lAmt = Math.min(1.0F, speed);
+                    float sp = 2.5F;
+                    float deg = 0.25F;
+
+                    abl.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * 3.0F) * lAmt * 0.5F + 0.1F;
+                    al.xRot = Mth.cos(4.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F - 0.2F;
+                    fal.xRot = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 5.0F) * lAmt * 0.5F + 0.25F;
+                    hl.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * 5.0F) * lAmt * 0.5F + 0.4F;
+
+                    abr.xRot = Mth.cos(2.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 3.0F) * lAmt * 0.5F + 0.1F;
+                    ar.xRot = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F - 0.2F;
+                    far.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * 5.0F) * lAmt * 0.5F + 0.25F;
+                    hr.xRot = Mth.cos(2.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 5.0F) * lAmt * 0.5F + 0.4F;
+
+                    tl.xRot = Mth.cos(1.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.8F) * lAmt * 0.5F;
+                    ull.xRot = Mth.cos(3.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F + 0.6F;
+                    lll.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F - 0.7F;
+                    fl.xRot = Mth.cos(4.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 4.0F) * lAmt * 0.5F + 0.2F;
+
+                    tr.xRot = Mth.cos(2.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.8F) * lAmt * 0.5F;
+                    ulr.xRot = Mth.cos(4.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F + 0.6F;
+                    llr.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F - 0.7F;
+                    fr.xRot = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 4.0F) * lAmt * 0.5F + 0.2F;
+
+                    chest.xRot = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -0.5F) * lAmt * 0.5F;
+                    backPoint.xRot = Mth.cos(1.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -0.8F) * lAmt * 0.5F - 0.1F;
+                    hips.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F - 0.4F;
+                    neck.xRot = Mth.cos(6.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 1.0F) * lAmt * 0.5F;
+                    head.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * -1.0F) * lAmt * 0.5F + 0.1F;
+                    chest.y = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -0.5F) * lAmt * 0.5F + 8.0F;
+                    tail1.xRot = Mth.cos(1.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 4.0F) * lAmt * 0.5F + 1.0F;
+                    tail2.xRot = Mth.cos(3.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F + 0.3F;
+                    mouth.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * 1.0F) * lAmt * 0.5F + 0.3F;
                 } else {
-                    float lPos = state.isInWater ? (age * 0.25F) : (t * 0.66F);
-                    float lSpeed = state.isInWater ? 0.65F : speed;
-                    chest.y += state.isInWater ? 4.5F : (-Math.abs(Mth.sin(lPos)) * 0.35F * lSpeed);
-                    chest.zRot = Mth.cos(lPos) * 0.035F * lSpeed;
-                    body.xRot = 0.0873F + Mth.sin(lPos * 2.0F) * 0.03F * lSpeed;
+                    float lSwing = state.isInWater ? age : t;
+                    float lAmt = state.isInWater ? 0.3F : speed;
+                    float sp = state.isInWater ? 2.0F : 2.5F;
+                    float deg = 0.5F;
 
-                    neck.xRot = (state.isRoaring && !state.isInWater) ? -0.52F : (-0.2618F + Math.abs(Mth.sin(lPos)) * 0.06F * lSpeed);
-                    head.xRot = (state.isRoaring && !state.isInWater) ? -0.18F : (0.3665F + state.xRot * ((float) Math.PI / 180F) * 0.65F);
-                    head.yRot = (state.isRoaring && !state.isInWater) ? (Mth.sin(age * 0.25F) * 0.12F) : (state.yRot * ((float) Math.PI / 180F) * 0.65F);
-                    mouth.xRot = (state.isRoaring && !state.isInWater) ? (0.48F + Mth.sin(age * 0.4F) * 0.08F) : 0.02F;
+                    abl.xRot = Mth.cos(lSwing * sp * 0.2F + (float) Math.PI) * (deg * 1.5F) * lAmt * 0.5F + 0.15F;
+                    al.xRot = Mth.cos(4.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F - 0.1F;
+                    fal.xRot = Mth.cos(2.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F + 0.1F;
+                    hl.xRot = Mth.cos(6.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * -4.0F) * lAmt * 0.5F;
 
-                    ModelPart abl = chest.getChild("ArmBaseLeft");
-                    ModelPart al = abl.getChild("ArmLeft");
-                    ModelPart fal = al.getChild("ForearmLeft");
-                    abl.xRot = 0.1745F + Mth.cos(lPos) * 0.68F * lSpeed;
-                    al.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos)) * 0.45F * lSpeed;
-                    fal.xRot = 0.0873F + Math.max(0.0F, -Mth.sin(lPos)) * 0.35F * lSpeed;
+                    abr.xRot = Mth.cos(lSwing * sp * 0.2F + (float) Math.PI) * (deg * -1.5F) * lAmt * 0.5F + 0.15F;
+                    ar.xRot = Mth.cos(4.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * 3.0F) * lAmt * 0.5F - 0.1F;
+                    far.xRot = Mth.cos(2.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F + 0.1F;
+                    hr.xRot = Mth.cos(6.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * 4.0F) * lAmt * 0.5F;
 
-                    ModelPart abr = chest.getChild("ArmBaseRight");
-                    ModelPart ar = abr.getChild("ArmRight");
-                    ModelPart far = ar.getChild("ForearmRight");
-                    abr.xRot = 0.1745F + Mth.cos(lPos + (float) Math.PI) * 0.68F * lSpeed;
-                    ar.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.45F * lSpeed;
-                    far.xRot = 0.0873F + Math.max(0.0F, -Mth.sin(lPos + (float) Math.PI)) * 0.35F * lSpeed;
+                    tl.xRot = Mth.cos(1.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F;
+                    ull.xRot = Mth.cos(lSwing * sp * 0.2F + (float) Math.PI) * (deg * -1.3F) * lAmt * 0.5F + 0.7F;
+                    lll.xRot = Mth.cos(5.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F - 0.8F;
+                    fl.xRot = Mth.cos(5.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F + 0.2F;
 
-                    ModelPart tl = legParent.getChild("ThighLeft");
-                    ModelPart ull = tl.getChild("UpperLegLeft");
-                    ModelPart lll = ull.getChild("LowerLegLeft");
-                    tl.xRot = -0.1745F + Mth.cos(lPos + (float) Math.PI) * 0.68F * lSpeed;
-                    ull.xRot = 0.3491F + Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.40F * lSpeed;
-                    lll.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.35F * lSpeed;
+                    tr.xRot = Mth.cos(1.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F;
+                    ulr.xRot = Mth.cos(lSwing * sp * 0.2F + (float) Math.PI) * (deg * 1.3F) * lAmt * 0.5F + 0.7F;
+                    llr.xRot = Mth.cos(5.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F - 0.8F;
+                    fr.xRot = Mth.cos(5.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F + 0.2F;
 
-                    ModelPart tr = legParent.getChild("ThighRight");
-                    ModelPart ulr = tr.getChild("UpperLegRight");
-                    ModelPart llr = ulr.getChild("LowerLegRight");
-                    tr.xRot = -0.1745F + Mth.cos(lPos) * 0.68F * lSpeed;
-                    ulr.xRot = 0.3491F + Math.max(0.0F, Mth.sin(lPos)) * 0.40F * lSpeed;
-                    llr.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos)) * 0.35F * lSpeed;
+                    chest.xRot = Mth.cos(1.0F + lSwing * sp * 0.4F + (float) Math.PI) * (deg * -0.15F) * lAmt * 0.5F - 0.08F;
+                    backPoint.xRot = Mth.cos(2.0F + lSwing * sp * 0.4F + (float) Math.PI) * (deg * 0.25F) * lAmt * 0.5F - 0.02F;
+                    hips.xRot = Mth.cos(lSwing * sp * 0.4F + (float) Math.PI) * (deg * 0.4F) * lAmt * 0.5F - 0.4F;
+                    neck.xRot = Mth.cos(6.0F + lSwing * sp * 0.4F + (float) Math.PI) * (deg * 0.1F) * lAmt * 0.5F + (state.isInWater ? -0.2F : 0.0F);
+                    head.xRot = Mth.cos(5.0F + lSwing * sp * 0.4F + (float) Math.PI) * (deg * -0.1F) * lAmt * 0.5F + 0.1F
+                            + (state.isRoaring ? -0.35F : (state.xRot * ((float) Math.PI / 180F) * 0.25F));
+                    neck.yRot = state.yRot * ((float) Math.PI / 180F) * 0.75F;
+                    head.yRot = state.yRot * ((float) Math.PI / 180F) * 0.25F;
+                    mouth.xRot = state.isRoaring ? (0.48F + Mth.sin(age * 0.4F) * 0.08F) : 0.0F;
 
-                    ModelPart t1 = hips.getChild("Tail1");
-                    ModelPart t2 = t1.getChild("Tail2");
-                    t1.yRot = Mth.sin(age * 0.11F + lPos * 0.4F) * 0.24F;
-                    t2.yRot = Mth.sin(age * 0.11F + lPos * 0.4F - 0.7F) * 0.36F;
-                    t2.getChild("TailTuft").yRot = Mth.sin(age * 0.11F + lPos * 0.4F - 1.3F) * 0.42F;
+                    tail1.xRot = Mth.cos(1.0F + lSwing * sp * 0.4F + (float) Math.PI) * (deg * 0.8F) * lAmt * 0.5F + 0.5F;
+                    tail2.xRot = Mth.cos(5.0F + lSwing * sp * 0.4F + (float) Math.PI) * (deg * 1.0F) * lAmt * 0.5F + 0.2F;
+                    tail1.zRot = Mth.cos(lSwing * sp * 0.2F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F;
+                    tail2.zRot = Mth.cos(5.0F + lSwing * sp * 0.2F + (float) Math.PI) * (deg * -2.0F) * lAmt * 0.5F;
+                    chest.y = (state.isInWater ? 12.0F : 8.0F) + Mth.cos(lSwing * sp * 0.4F + (float) Math.PI) * (deg * -0.1F) * lAmt * 0.5F;
                 }
             }
         }
     }
+
 
 
     @SubscribeEvent
