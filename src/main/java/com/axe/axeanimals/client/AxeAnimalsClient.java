@@ -135,11 +135,11 @@ public class AxeAnimalsClient {
                     }
                 }
             }
-            else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
+                        else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
                 float swim = age * 0.065F + t * 0.22F;
                 float bp = state.breachProgress;
-                body.xRot = (bp > 0.01F) ? (-0.68F * bp + Mth.cos(bp * (float) Math.PI) * 0.25F) : (Mth.sin(swim) * 0.045F);
+                body.xRot = (bp > 0.01F) ? (-0.65F * Mth.cos(bp * (float) Math.PI)) : (Mth.sin(swim) * 0.045F);
                 body.y += Mth.sin(swim) * 0.75F;
                 if (body.hasChild("head") && body.getChild("head").hasChild("jaw")) {
                     ModelPart jaw = body.getChild("head").getChild("jaw");
