@@ -13,9 +13,10 @@ public class WhaleModel {
 
 		PartDefinition head = body.addOrReplaceChild("head", CubeListBuilder.create().texOffs(118, 0).addBox(-12.0F, -9.0F, -24.0F, 24.0F, 12.0F, 25.0F, new CubeDeformation(0.0F))
 		.texOffs(118, 38).addBox(-9.0F, -7.0F, -32.0F, 18.0F, 9.0F, 8.0F, new CubeDeformation(0.0F))
-		.texOffs(180, 0).addBox(-10.5F, 2.5F, -24.0F, 2.0F, 2.0F, 22.0F, new CubeDeformation(0.0F))
-		.texOffs(180, 32).addBox(8.5F, 2.5F, -24.0F, 2.0F, 2.0F, 22.0F, new CubeDeformation(0.0F))
-		.texOffs(180, 64).addBox(-8.0F, 1.8F, -31.0F, 16.0F, 1.7F, 7.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 0.0F, -16.0F));
+		.texOffs(180, 0).addBox(-9.2F, 2.8F, -23.0F, 1.8F, 2.2F, 21.0F, new CubeDeformation(-0.15F))
+		.texOffs(180, 32).addBox(7.4F, 2.8F, -23.0F, 1.8F, 2.2F, 21.0F, new CubeDeformation(-0.15F))
+		.texOffs(180, 64).addBox(-7.2F, 2.0F, -30.0F, 14.4F, 2.0F, 6.5F, new CubeDeformation(-0.15F)), PartPose.offset(0.0F, 0.0F, -16.0F));
+
 
 		PartDefinition jaw = head.addOrReplaceChild("jaw", CubeListBuilder.create().texOffs(118, 56).addBox(-10.5F, 0.0F, -24.0F, 21.0F, 7.5F, 25.0F, new CubeDeformation(0.0F))
 		.texOffs(118, 90).addBox(-8.0F, 0.0F, -31.0F, 16.0F, 6.5F, 7.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 3.5F, 0.0F));
