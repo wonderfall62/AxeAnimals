@@ -23,19 +23,27 @@ import java.util.List;
 
 public class ModCompatibilityEvents {
 
+
     @SubscribeEvent
     public static void onMobFinalizeSpawn(FinalizeSpawnEvent event) {
         Mob mob = event.getEntity();
         Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
-        if (id.getNamespace().equals("cubeanimals")) {
-            String path = id.getPath();
+        String ns = id.getNamespace();
+        String path = id.getPath();
+
+        if (ns.equals("cubeanimals")) {
             if (path.contains("fennec") || path.contains("rattlesnake") || path.contains("snake")) {
                 if (Float.compare(mob.getRandom().nextFloat(), 0.80F) == -1) {
                     event.setSpawnCancelled(true);
                 }
             }
+        } else if (ns.equals("iceandfire") && path.contains("hippocampus")) {
+            if (Float.compare(mob.getRandom().nextFloat(), 0.80F) == -1) {
+                event.setSpawnCancelled(true);
+            }
         }
     }
+
 
     @SubscribeEvent
     public static void onDolphinInteract(PlayerInteractEvent.EntityInteract event) {
