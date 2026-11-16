@@ -1,6 +1,9 @@
 package com.axe.axeanimals.entity;
 
 import com.axe.axeanimals.registry.ModEntities;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -24,8 +27,8 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import org.jetbrains.annotations.Nullable;
 
 public class LionEntity extends TamableAnimal {
+    private static final EntityDataAccessor<Integer> ROAR_TICKS = SynchedEntityData.defineId(LionEntity.class, EntityDataSerializers.INT);
     public final AnimationState roarState = new AnimationState();
-    private int roarTimer = 0;
 
     public LionEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -36,6 +39,12 @@ public class LionEntity extends TamableAnimal {
                 .add(Attributes.MAX_HEALTH, 36.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.30D)
                 .add(Attributes.ATTACK_DAMAGE, 8.0D);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(ROAR_TICKS, 0);
     }
 
     @Override
@@ -81,22 +90,19 @@ public class LionEntity extends TamableAnimal {
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide()) {
-            if (this.roarTimer != 0) {
-                this.roarTimer--;
-                if (this.roarTimer == 0) {
-                    this.roarState.stop();
-                }
-            } else if (!this.isBaby() && !this.isOrderedToSit() && this.random.nextInt(360) == 0) {
-                this.roarTimer = 45;
-                this.roarState.start(this.tickCount);
-                this.playSound(SoundEvents.RAVAGER_ROAR, 0.55F, 0.80F);
+        if (!this.level().isClientSide()) {
+            int rt = this.entityData.get(ROAR_TICKS);
+            if (rt != 0) {
+                this.entityData.set(ROAR_TICKS, rt - 1);
+            } else if (!this.isBaby() && !this.isInWater() && this.onGround() && !this.isOrderedToSit() && this.random.nextInt(360) == 0) {
+                this.entityData.set(ROAR_TICKS, 45);
+                this.playSound(SoundEvents.RAVAGER_ROAR, 0.95F, 0.72F);
             }
         }
     }
 
     public boolean isRoaringNow() {
-        return this.roarTimer != 0;
+        return this.entityData.get(ROAR_TICKS) != 0;
     }
 
     @Override
@@ -121,7 +127,7 @@ public class LionEntity extends TamableAnimal {
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
         if (reason == EntitySpawnReason.NATURAL && !this.isBaby()) {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i != 2; i++) {
                 LionessEntity lioness = ModEntities.LIONESS.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
                 if (lioness != null) {
                     lioness.snapTo(this.getX() + (i + 1) * 1.5, this.getY(), this.getZ() + 1.5, this.getYRot(), 0);
@@ -130,7 +136,7 @@ public class LionEntity extends TamableAnimal {
             }
             if (Float.compare(this.random.nextFloat(), 0.18F) == -1) {
                 int cubs = 2 + this.random.nextInt(2);
-                for (int i = 0; i < cubs; i++) {
+                for (int i = 0; i != cubs; i++) {
                     TamableAnimal cub = this.random.nextBoolean()
                             ? ModEntities.LION.get().create(level.getLevel(), EntitySpawnReason.NATURAL)
                             : ModEntities.LIONESS.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
@@ -147,7 +153,7 @@ public class LionEntity extends TamableAnimal {
 
     @Override
     public int getAmbientSoundInterval() {
-        return 360;
+        return 420;
     }
 
     @Override
@@ -167,7 +173,7 @@ public class LionEntity extends TamableAnimal {
 
     @Override
     public float getSoundVolume() {
-        return 0.55F;
+        return 0.50F;
     }
 
     @Override
