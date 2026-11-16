@@ -78,14 +78,15 @@ public class ModCompatibilityEvents {
                 dolphin.getPersistentData().putInt("AxeBreedCD", cd - 1);
             }
 
-            // Мягкое отталкивание, чтобы дельфины не бились о хитбокс китов
-            List<WhaleEntity> veryClose = dolphin.level().getEntitiesOfClass(WhaleEntity.class, dolphin.getBoundingBox().inflate(5.5D));
+            // Плавное огибание корпуса кита (только вплотную ближе 3.2 блоков и очень мягко)
+            List<WhaleEntity> veryClose = dolphin.level().getEntitiesOfClass(WhaleEntity.class, dolphin.getBoundingBox().inflate(3.2D));
             if (!veryClose.isEmpty()) {
                 WhaleEntity nearest = veryClose.getFirst();
                 Vec3 away = dolphin.position().subtract(nearest.position());
                 if (Double.compare(away.lengthSqr(), 0.01D) == 1) {
-                    Vec3 push = away.normalize().scale(0.18D);
-                    dolphin.setDeltaMovement(push.x, dolphin.getDeltaMovement().y, push.z);
+                    Vec3 tangent = new Vec3(-away.z, 0, away.x).normalize().scale(0.06D);
+                    Vec3 push = away.normalize().scale(0.05D);
+                    dolphin.setDeltaMovement(dolphin.getDeltaMovement().add(push.x + tangent.x, 0, push.z + tangent.z));
                 }
             }
 
@@ -103,7 +104,7 @@ public class ModCompatibilityEvents {
                     double distSq = dolphin.distanceToSqr(w);
                     if (Double.compare(distSq, 64.0D) == 1) {
                         Vec3 side = new Vec3(-w.getLookAngle().z, 0, w.getLookAngle().x).normalize().scale(6.5D);
-                        dolphin.getNavigation().moveTo(w.getX() + side.x, w.getY(), w.getZ() + side.z, 1.2D);
+                        dolphin.getNavigation().moveTo(w.getX() + side.x, w.getY(), w.getZ() + side.z, 1.15D);
                     }
                 }
                 if (whalePlay - 1 == 0) {
@@ -122,7 +123,6 @@ public class ModCompatibilityEvents {
         String ns = id.getNamespace();
         String path = id.getPath();
 
-        // Гиппокампы из Ice and Fire держатся под водой, если на них не сидит игрок
         if (ns.equals("iceandfire") && path.contains("hippocampus")) {
             if (!entity.isVehicle() && entity.isInWater()) {
                 boolean nearSurface = !entity.level().getFluidState(entity.blockPosition().above()).is(FluidTags.WATER);
