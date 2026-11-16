@@ -80,7 +80,6 @@ public class FerretEntity extends Animal {
         this.playSound(SoundEvents.FOX_AMBIENT, 0.8F, 1.3F);
         return ModEntities.FERRET.get().create(level, EntitySpawnReason.BREEDING);
     }
-}
  @Override
     protected net.minecraft.sounds.SoundEvent getAmbientSound() {
         return net.minecraft.sounds.SoundEvents.FOX_AMBIENT;
@@ -100,3 +99,4 @@ public class FerretEntity extends Animal {
     public float getVoicePitch() {
         return this.isBaby() ? 1.85F : 1.55F;
     }
+}
