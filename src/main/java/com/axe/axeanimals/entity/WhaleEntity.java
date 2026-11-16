@@ -45,8 +45,9 @@ import org.jetbrains.annotations.Nullable;
 public class WhaleEntity extends WaterAnimal {
     private static final EntityDataAccessor<Boolean> IS_BABY = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Float> GROWTH_PROGRESS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.FLOAT);
-    private static final EntityDataAccessor<Integer> BREACH_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INTEGER);
-    private static final EntityDataAccessor<Integer> FEEDING_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INTEGER);
+    private static final EntityDataAccessor<Integer> BREACH_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> FEEDING_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INT);
+
 
     public final AnimationState breachState = new AnimationState();
     public final AnimationState feedingState = new AnimationState();
