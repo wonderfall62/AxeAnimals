@@ -242,22 +242,17 @@ public class WhaleEntity extends WaterAnimal {
                 }
             }
 
-            if (this.escortCooldown != 0) this.escortCooldown--;
+                        if (this.escortCooldown != 0) this.escortCooldown--;
             if (this.escortTicks != 0) {
                 this.escortTicks--;
-                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(24.0D));
+                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(28.0D));
                 if (!boats.isEmpty()) {
                     Boat targetBoat = boats.getFirst();
                     Vec3 forward = targetBoat.getLookAngle();
                     Vec3 side = new Vec3(-forward.z, 0, forward.x).normalize();
-                    Vec3 sideTarget = targetBoat.position().add(side.scale(5.8D)).add(forward.scale(2.0D));
+                    Vec3 sideTarget = targetBoat.position().add(side.scale(9.5D)).add(forward.scale(3.0D));
+                    this.getNavigation().moveTo(sideTarget.x, targetBoat.getY() - 0.8D, sideTarget.z, 1.15D);
 
-                    if (Double.compare(this.distanceToSqr(targetBoat), 18.0D) == -1) {
-                        Vec3 away = this.position().subtract(targetBoat.position()).normalize();
-                        this.setDeltaMovement(away.x * 0.22D, this.getDeltaMovement().y, away.z * 0.22D);
-                    } else {
-                        this.getNavigation().moveTo(sideTarget.x, targetBoat.getY() - 0.5D, sideTarget.z, 1.15D);
-                    }
                     if (targetBoat.getControllingPassenger() instanceof Player p) {
                         p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, true, false));
                     }
@@ -266,35 +261,37 @@ public class WhaleEntity extends WaterAnimal {
                         .forEach(d -> d.setDeltaMovement(d.position().subtract(this.position()).normalize().scale(0.35D)));
                 if (this.escortTicks == 0) this.escortCooldown = 14000;
             } else if (this.escortCooldown == 0 && this.tickCount % 60 == 0) {
-                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(26.0D));
+                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(28.0D));
                 if (!boats.isEmpty()) {
                     this.escortTicks = 1800;
                 }
             }
 
-            if (fTicks == 0 && this.isInWater() && this.tickCount % 260 == 0 && Float.compare(this.random.nextFloat(), 0.50F) == -1) {
+            if (fTicks == 0 && this.isInWater() && this.tickCount % 220 == 0 && Float.compare(this.random.nextFloat(), 0.55F) == -1) {
                 this.entityData.set(FEEDING_TICKS, 60);
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
+            // Прыжок из воды: теперь срабатывает прямо из толщи воды без блокировки!
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 360.0F) == 1) {
-                    this.breachCooldown = 280 + this.random.nextInt(120);
+                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 260.0F) == 1) {
+                    this.breachCooldown = 200 + this.random.nextInt(100);
                 }
-            } else if (this.isInWater() && !shallow && this.level().isEmptyBlock(this.blockPosition().above(2))) {
-                var nearBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(4.5D));
-                if (nearBoats.isEmpty()) {
+            } else if (this.isInWater() && !shallow) {
+                var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(6.0D));
+                if (tooCloseBoats.isEmpty()) {
                     Vec3 look = this.getLookAngle();
-                    this.setDeltaMovement(look.x * 0.45D, 1.05D, look.z * 0.45D);
-                    this.entityData.set(BREACH_TICKS, 48);
-                    this.breachCooldown = (this.escortTicks != 0) ? (320 + this.random.nextInt(180)) : (1200 + this.random.nextInt(1200));
+                    this.setDeltaMovement(look.x * 0.50D, 1.12D, look.z * 0.50D);
+                    this.entityData.set(BREACH_TICKS, 52);
+                    this.breachCooldown = (this.escortTicks != 0) ? (240 + this.random.nextInt(140)) : (600 + this.random.nextInt(600));
                     this.playSound(SoundEvents.GENERIC_SPLASH, 2.0F, 0.45F);
-                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 55, 2.8, 0.6, 2.8, 0.25);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 60, 3.0, 0.6, 3.0, 0.25);
                 }
             }
         }
     }
+
 
     @Nullable
     @Override
