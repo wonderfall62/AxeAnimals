@@ -186,56 +186,76 @@ public class AxeAnimalsClient {
                     tb.yRot = Mth.cos(swim * 0.7F) * 0.20F;
                     if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.cos(swim * 0.7F - 0.7F) * 0.28F;
                 }
-            } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("body")) {
-                ModelPart body = this.rootPart.getChild("body");
+            } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("Chest")) {
+                ModelPart chest = this.rootPart.getChild("Chest");
+                ModelPart body = chest.getChild("Body");
+                ModelPart hips = body.getChild("Hips");
+                ModelPart neck = chest.getChild("Neck");
+                ModelPart head = neck.getChild("Head");
+                ModelPart mouth = head.getChild("Mouth");
+
                 if (state.isStretching && !state.isInWater) {
-                    body.y += 2.2F;
-                    body.xRot = 0.32F;
-                    if (body.hasChild("neck")) {
-                        ModelPart neck = body.getChild("neck");
-                        neck.xRot = -0.35F;
-                        if (neck.hasChild("head")) neck.getChild("head").xRot = -0.25F;
-                    }
-                    if (body.hasChild("leg_front_left")) body.getChild("leg_front_left").xRot = -1.05F;
-                    if (body.hasChild("leg_front_right")) body.getChild("leg_front_right").xRot = -1.05F;
-                    if (body.hasChild("leg_back_left")) body.getChild("leg_back_left").xRot = -0.32F;
-                    if (body.hasChild("leg_back_right")) body.getChild("leg_back_right").xRot = -0.32F;
-                    if (body.hasChild("tail_base")) {
-                        ModelPart tb = body.getChild("tail_base");
-                        tb.xRot = 0.65F;
-                        if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").xRot = 0.45F;
-                    }
+                    chest.y += 2.2F;
+                    chest.xRot = 0.25F;
+                    neck.xRot = -0.55F;
+                    head.xRot = 0.15F;
+                    chest.getChild("ArmBaseLeft").xRot = -1.15F;
+                    chest.getChild("ArmBaseRight").xRot = -1.15F;
+                    hips.getChild("ThighLeft").xRot = -0.35F;
+                    hips.getChild("ThighRight").xRot = -0.35F;
+                    ModelPart t1 = hips.getChild("Tail1");
+                    t1.xRot = -0.35F;
+                    t1.getChild("Tail2").xRot = 0.45F;
                 } else {
                     float lPos = state.isInWater ? (age * 0.25F) : (t * 0.66F);
                     float lSpeed = state.isInWater ? 0.65F : speed;
-                    body.y += state.isInWater ? 4.5F : (-Math.abs(Mth.sin(lPos)) * 0.32F * lSpeed);
-                    body.zRot = Mth.cos(lPos) * 0.035F * lSpeed;
-                    if (body.hasChild("neck")) {
-                        ModelPart neck = body.getChild("neck");
-                        neck.xRot = (state.isRoaring && !state.isInWater) ? -0.28F : (Math.abs(Mth.sin(lPos)) * 0.05F * lSpeed);
-                        if (neck.hasChild("head")) {
-                            ModelPart head = neck.getChild("head");
-                            head.xRot = (state.isRoaring && !state.isInWater) ? -0.32F : (state.xRot * ((float) Math.PI / 180F) * 0.65F);
-                            head.yRot = (state.isRoaring && !state.isInWater) ? (Mth.sin(age * 0.25F) * 0.12F) : (state.yRot * ((float) Math.PI / 180F) * 0.65F);
-                            if (head.hasChild("jaw")) {
-                                head.getChild("jaw").xRot = (state.isRoaring && !state.isInWater) ? (0.48F + Mth.sin(age * 0.4F) * 0.08F) : 0.03F;
-                            }
-                        }
-                    }
-                    if (body.hasChild("leg_front_left")) body.getChild("leg_front_left").xRot = Mth.cos(lPos) * 0.72F * lSpeed;
-                    if (body.hasChild("leg_front_right")) body.getChild("leg_front_right").xRot = Mth.cos(lPos + (float) Math.PI) * 0.72F * lSpeed;
-                    if (body.hasChild("leg_back_left")) body.getChild("leg_back_left").xRot = Mth.cos(lPos + (float) Math.PI) * 0.72F * lSpeed;
-                    if (body.hasChild("leg_back_right")) body.getChild("leg_back_right").xRot = Mth.cos(lPos) * 0.72F * lSpeed;
-                    if (body.hasChild("tail_base")) {
-                        ModelPart tb = body.getChild("tail_base");
-                        tb.xRot = -0.55F;
-                        tb.yRot = Mth.sin(age * 0.11F + lPos * 0.4F) * 0.24F;
-                        if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.sin(age * 0.11F + lPos * 0.4F - 0.7F) * 0.36F;
-                    }
+                    chest.y += state.isInWater ? 4.5F : (-Math.abs(Mth.sin(lPos)) * 0.35F * lSpeed);
+                    chest.zRot = Mth.cos(lPos) * 0.035F * lSpeed;
+                    body.xRot = 0.0873F + Mth.sin(lPos * 2.0F) * 0.03F * lSpeed;
+
+                    neck.xRot = (state.isRoaring && !state.isInWater) ? -0.52F : (-0.2618F + Math.abs(Mth.sin(lPos)) * 0.06F * lSpeed);
+                    head.xRot = (state.isRoaring && !state.isInWater) ? -0.18F : (0.3665F + state.xRot * ((float) Math.PI / 180F) * 0.65F);
+                    head.yRot = (state.isRoaring && !state.isInWater) ? (Mth.sin(age * 0.25F) * 0.12F) : (state.yRot * ((float) Math.PI / 180F) * 0.65F);
+                    mouth.xRot = (state.isRoaring && !state.isInWater) ? (0.48F + Mth.sin(age * 0.4F) * 0.08F) : 0.02F;
+
+                    ModelPart abl = chest.getChild("ArmBaseLeft");
+                    ModelPart al = abl.getChild("ArmLeft");
+                    ModelPart fal = al.getChild("ForearmLeft");
+                    abl.xRot = 0.1745F + Mth.cos(lPos) * 0.68F * lSpeed;
+                    al.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos)) * 0.45F * lSpeed;
+                    fal.xRot = 0.0873F + Math.max(0.0F, -Mth.sin(lPos)) * 0.35F * lSpeed;
+
+                    ModelPart abr = chest.getChild("ArmBaseRight");
+                    ModelPart ar = abr.getChild("ArmRight");
+                    ModelPart far = ar.getChild("ForearmRight");
+                    abr.xRot = 0.1745F + Mth.cos(lPos + (float) Math.PI) * 0.68F * lSpeed;
+                    ar.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.45F * lSpeed;
+                    far.xRot = 0.0873F + Math.max(0.0F, -Mth.sin(lPos + (float) Math.PI)) * 0.35F * lSpeed;
+
+                    ModelPart tl = hips.getChild("ThighLeft");
+                    ModelPart ull = tl.getChild("UpperLegLeft");
+                    ModelPart lll = ull.getChild("LowerLegLeft");
+                    tl.xRot = -0.1745F + Mth.cos(lPos + (float) Math.PI) * 0.68F * lSpeed;
+                    ull.xRot = 0.3491F + Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.40F * lSpeed;
+                    lll.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.35F * lSpeed;
+
+                    ModelPart tr = hips.getChild("ThighRight");
+                    ModelPart ulr = tr.getChild("UpperLegRight");
+                    ModelPart llr = ulr.getChild("LowerLegRight");
+                    tr.xRot = -0.1745F + Mth.cos(lPos) * 0.68F * lSpeed;
+                    ulr.xRot = 0.3491F + Math.max(0.0F, Mth.sin(lPos)) * 0.40F * lSpeed;
+                    llr.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos)) * 0.35F * lSpeed;
+
+                    ModelPart t1 = hips.getChild("Tail1");
+                    ModelPart t2 = t1.getChild("Tail2");
+                    t1.yRot = Mth.sin(age * 0.11F + lPos * 0.4F) * 0.24F;
+                    t2.yRot = Mth.sin(age * 0.11F + lPos * 0.4F - 0.7F) * 0.36F;
+                    t2.getChild("TailTuft").yRot = Mth.sin(age * 0.11F + lPos * 0.4F - 1.3F) * 0.42F;
                 }
             }
         }
     }
+
     @SubscribeEvent
     public static void registerLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(FERRET_LAYER, FerretModel::createBodyLayer);
