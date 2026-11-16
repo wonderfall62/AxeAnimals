@@ -34,7 +34,10 @@ public class FerretEntity extends Animal {
                 .add(Attributes.MOVEMENT_SPEED, 0.34D)
                 .add(Attributes.ATTACK_DAMAGE, 3.0D);
     }
-
+  @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false;
+    }
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
