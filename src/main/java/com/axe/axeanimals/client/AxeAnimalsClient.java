@@ -167,8 +167,6 @@ public class AxeAnimalsClient {
                     rf.zRot = 0.22F + Mth.cos(swim * 0.75F) * 0.12F + 0.22F * blend;
                     if (rf.hasChild("right_fin_tip")) rf.getChild("right_fin_tip").zRot = 0.08F + Mth.cos(swim * 0.75F - 0.6F) * 0.15F;
                 }
-            }
-
             } else if (animalType.equals("stingray") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
                 float swim = age * 0.13F + t * 0.32F;
