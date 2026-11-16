@@ -27,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 public class LionessEntity extends TamableAnimal {
     private static final EntityDataAccessor<Integer> STRETCH_TICKS = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.INT);
     public final AnimationState stretchState = new AnimationState();
+    private int sprintTicks = 0;
 
     public LionessEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -38,10 +39,12 @@ public class LionessEntity extends TamableAnimal {
                 .add(Attributes.MOVEMENT_SPEED, 0.33D)
                 .add(Attributes.ATTACK_DAMAGE, 7.0D);
     }
-  @Override
+
+    @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
         return false;
     }
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
@@ -52,7 +55,7 @@ public class LionessEntity extends TamableAnimal {
     protected void registerGoals() {
         this.goalSelector.addGoal(1, new FloatGoal(this));
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
-        this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.3D, true));
+        this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.35D, true));
         this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.15D, 10.0F, 2.0F));
         this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D));
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.95D));
@@ -93,11 +96,34 @@ public class LionessEntity extends TamableAnimal {
         super.tick();
         if (!this.level().isClientSide()) {
             int st = this.entityData.get(STRETCH_TICKS);
+            boolean moving = Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.002D) == 1;
+
             if (st != 0) {
-                this.entityData.set(STRETCH_TICKS, st - 1);
+                if (moving || this.isInWater() || this.isOrderedToSit()) {
+                    this.entityData.set(STRETCH_TICKS, 0);
+                } else {
+                    this.getNavigation().stop();
+                    this.entityData.set(STRETCH_TICKS, st - 1);
+                }
             } else if (!this.isBaby() && !this.isInWater() && this.onGround() && !this.isOrderedToSit()
-                    && Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.0005D) == -1 && this.random.nextInt(240) == 0) {
+                    && !moving && this.sprintTicks == 0 && this.random.nextInt(260) == 0) {
                 this.entityData.set(STRETCH_TICKS, 50);
+            }
+
+            if (this.sprintTicks != 0) {
+                this.sprintTicks--;
+                this.setSprinting(true);
+                if (this.getNavigation().isDone() && this.tickCount % 20 == 0) {
+                    double tx = this.getX() + (this.random.nextDouble() - 0.5D) * 28.0D;
+                    double tz = this.getZ() + (this.random.nextDouble() - 0.5D) * 28.0D;
+                    this.getNavigation().moveTo(tx, this.getY(), tz, 1.45D);
+                }
+            } else {
+                this.setSprinting(this.getTarget() != null);
+                if (!this.isInWater() && this.onGround() && !this.isOrderedToSit()
+                        && this.entityData.get(STRETCH_TICKS) == 0 && this.random.nextInt(320) == 0) {
+                    this.sprintTicks = 130 + this.random.nextInt(70);
+                }
             }
         }
     }
