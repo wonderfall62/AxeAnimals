@@ -9,7 +9,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.dolphin.Dolphin;
 import net.minecraft.world.item.ItemStack;
@@ -49,8 +48,8 @@ public class ModCompatibilityEvents {
                 dolphin.playSound(SoundEvents.DOLPHIN_EAT, 1.0F, 1.2F);
                 ((ServerLevel) dolphin.level()).sendParticles(ParticleTypes.HEART, dolphin.getX(), dolphin.getY() + 0.8, dolphin.getZ(), 5, 0.4, 0.3, 0.4, 0.05);
 
-                Dolphin baby = EntityType.DOLPHIN.create(dolphin.level(), EntitySpawnReason.BREEDING);
-                if (baby != null) {
+                Entity created = dolphin.getType().create(dolphin.level(), EntitySpawnReason.BREEDING);
+                if (created instanceof Dolphin baby) {
                     baby.setBaby(true);
                     baby.snapTo(dolphin.getX(), dolphin.getY(), dolphin.getZ(), dolphin.getYRot(), 0);
                     dolphin.level().addFreshEntity(baby);
@@ -107,7 +106,6 @@ public class ModCompatibilityEvents {
             if (entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below()).isEmpty()) {
                 Vec3 motion = entity.getDeltaMovement();
                 entity.setDeltaMovement(motion.x * 1.1, Math.max(0.18D, motion.y + 0.12D), motion.z * 1.1);
-                entity.hurtMarked = true;
             }
             return;
         }
@@ -119,7 +117,6 @@ public class ModCompatibilityEvents {
                     if (Double.compare(m.horizontalDistanceSqr(), 0.02D) == -1) {
                         Vec3 look = entity.getLookAngle().scale(0.35D);
                         entity.setDeltaMovement(look.x, -0.05D, look.z);
-                        entity.hurtMarked = true;
                     }
                 }
             } else {
@@ -127,7 +124,6 @@ public class ModCompatibilityEvents {
                 if (overWater && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.008D) == -1) {
                     Vec3 look = entity.getLookAngle().scale(0.45D);
                     entity.setDeltaMovement(look.x, 0.35D, look.z);
-                    entity.hurtMarked = true;
                 }
             }
         }
