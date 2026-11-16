@@ -2,10 +2,12 @@ package com.axe.axeanimals.entity;
 
 import com.axe.axeanimals.registry.ModEntities;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -23,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class LionEntity extends TamableAnimal {
     public final AnimationState roarState = new AnimationState();
+    private int roarTimer = 0;
 
     public LionEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -54,7 +57,6 @@ public class LionEntity extends TamableAnimal {
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        // Приручается ТОЛЬКО детёныш сырой говядиной
         if (this.isBaby() && !this.isTame() && stack.is(Items.BEEF)) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -79,10 +81,22 @@ public class LionEntity extends TamableAnimal {
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide() && !this.isBaby() && this.random.nextInt(320) == 0) {
-            this.roarState.start(this.tickCount);
-            this.playSound(SoundEvents.RAVAGER_ROAR, 0.7F, 0.85F);
+        if (this.level().isClientSide()) {
+            if (this.roarTimer != 0) {
+                this.roarTimer--;
+                if (this.roarTimer == 0) {
+                    this.roarState.stop();
+                }
+            } else if (!this.isBaby() && !this.isOrderedToSit() && this.random.nextInt(360) == 0) {
+                this.roarTimer = 45;
+                this.roarState.start(this.tickCount);
+                this.playSound(SoundEvents.RAVAGER_ROAR, 0.55F, 0.80F);
+            }
         }
+    }
+
+    public boolean isRoaringNow() {
+        return this.roarTimer != 0;
     }
 
     @Override
@@ -107,7 +121,6 @@ public class LionEntity extends TamableAnimal {
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
         if (reason == EntitySpawnReason.NATURAL && !this.isBaby()) {
-            // Спавним 2 львиц в прайд
             for (int i = 0; i < 2; i++) {
                 LionessEntity lioness = ModEntities.LIONESS.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
                 if (lioness != null) {
@@ -115,7 +128,6 @@ public class LionEntity extends TamableAnimal {
                     level.addFreshEntity(lioness);
                 }
             }
-            // С редким шансом (18%) в прайде есть 2-3 львёнка
             if (Float.compare(this.random.nextFloat(), 0.18F) == -1) {
                 int cubs = 2 + this.random.nextInt(2);
                 for (int i = 0; i < cubs; i++) {
@@ -132,24 +144,34 @@ public class LionEntity extends TamableAnimal {
         }
         return super.finalizeSpawn(level, difficulty, reason, spawnData);
     }
-        @Override
-    protected net.minecraft.sounds.SoundEvent getAmbientSound() {
-        return net.minecraft.sounds.SoundEvents.RAVAGER_ROAR;
+
+    @Override
+    public int getAmbientSoundInterval() {
+        return 360;
     }
 
     @Override
-    protected net.minecraft.sounds.SoundEvent getHurtSound(net.minecraft.world.damagesource.DamageSource source) {
-        return net.minecraft.sounds.SoundEvents.POLAR_BEAR_HURT;
+    protected SoundEvent getAmbientSound() {
+        return SoundEvents.POLAR_BEAR_AMBIENT;
     }
 
     @Override
-    protected net.minecraft.sounds.SoundEvent getDeathSound() {
-        return net.minecraft.sounds.SoundEvents.POLAR_BEAR_DEATH;
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.POLAR_BEAR_HURT;
+    }
+
+    @Override
+    protected SoundEvent getDeathSound() {
+        return SoundEvents.POLAR_BEAR_DEATH;
+    }
+
+    @Override
+    public float getSoundVolume() {
+        return 0.55F;
     }
 
     @Override
     public float getVoicePitch() {
         return this.isBaby() ? 1.4F : 0.65F;
     }
-
 }
