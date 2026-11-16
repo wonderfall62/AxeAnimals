@@ -12,10 +12,11 @@
     "minecraft:old_growth_spruce_taiga",
     "minecraft:meadow"
   ],
-  "spawners": {
-    "type": "axeanimals:ferret",
-    "weight": 12,
-    "minCount": 1,
-    "maxCount": 3
-  }
+  "spawners": [
+    {
+      "type": "axeanimals:ferret",
+      "weight": 12,
+      "count": [1, 3]
+    }
+  ]
 }
