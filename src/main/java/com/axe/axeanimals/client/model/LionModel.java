@@ -69,7 +69,7 @@ public class LionModel {
 
         // Пышная тёмно-коричневая и золотистая грива самца (строго в зоне UV X=20..108, Y=42..80)
         PartDefinition mane = neck.addOrReplaceChild("Mane", CubeListBuilder.create()
-                .texOffs(44, 41).addBox(-5.5F, -5.5F, -4.5F, 11.0F, 11.0F, 9.0F),
+                .texOffs(44, 52).addBox(-5.5F, -5.5F, -4.5F, 11.0F, 11.0F, 9.0F),
                 PartPose.offsetAndRotation(0.0F, -0.5F, -2.5F, 0.1222F, 0.0F, 0.0F));
 
         mane.addOrReplaceChild("Mane2", CubeListBuilder.create()
@@ -77,7 +77,7 @@ public class LionModel {
                 PartPose.offsetAndRotation(0.0F, 0.2F, 3.5F, -0.1396F, 0.0F, 0.0F));
 
         PartDefinition maneTop = mane.addOrReplaceChild("ManeTop", CubeListBuilder.create()
-                .texOffs(22, 42).addBox(-4.5F, -2.5F, -4.0F, 9.0F, 4.0F, 8.0F),
+                .texOffs(22, 54).addBox(-4.5F, -2.5F, -4.0F, 9.0F, 4.0F, 8.0F),
                 PartPose.offsetAndRotation(0.0F, -4.8F, -0.8F, 0.1745F, 0.0F, 0.0F));
 
         maneTop.addOrReplaceChild("ManeTop2", CubeListBuilder.create()
@@ -85,7 +85,7 @@ public class LionModel {
                 PartPose.offsetAndRotation(0.0F, -0.3F, 3.5F, -0.2269F, 0.0F, 0.0F));
 
         PartDefinition maneBottom = mane.addOrReplaceChild("ManeBottom", CubeListBuilder.create()
-                .texOffs(74, 46).addBox(-4.5F, 0.0F, -3.5F, 9.0F, 5.0F, 8.0F),
+                .texOffs(74, 54).addBox(-4.5F, 0.0F, -3.5F, 9.0F, 5.0F, 8.0F),
                 PartPose.offsetAndRotation(0.0F, 4.2F, -1.0F, 0.1396F, 0.0F, 0.0F));
 
         maneBottom.addOrReplaceChild("ManeBottom2", CubeListBuilder.create()
@@ -172,6 +172,6 @@ public class LionModel {
                 .texOffs(48, 47).mirror().addBox(-1.5F, 0.0F, -2.5F, 3.0F, 2.0F, 4.0F),
                 PartPose.offsetAndRotation(0.0F, 4.2F, -0.2F, 0.1745F, 0.0F, 0.0F));
 
-        return LayerDefinition.create(mesh, 128, 96);
+        return LayerDefinition.create(mesh, 128, 128);
     }
 }
