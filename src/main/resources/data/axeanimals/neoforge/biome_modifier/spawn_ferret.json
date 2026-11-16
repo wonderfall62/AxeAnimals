@@ -17,8 +17,9 @@
       "type": "axeanimals:ferret",
       "weight": 12,
       "count": {
-        "min": 1,
-        "max": 3
+        "type": "minecraft:uniform",
+        "min_inclusive": 1,
+        "max_inclusive": 3
       }
     }
   ]
