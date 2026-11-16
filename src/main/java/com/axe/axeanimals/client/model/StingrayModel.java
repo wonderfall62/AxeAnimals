@@ -1,28 +1,68 @@
 package com.axe.axeanimals.client.model;
 
+import com.axe.axeanimals.client.renderer.state.StingrayRenderState;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
-import net.minecraft.client.model.geom.builders.*;
+import net.minecraft.client.model.geom.builders.CubeDeformation;
+import net.minecraft.client.model.geom.builders.CubeListBuilder;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
+import net.minecraft.client.model.geom.builders.MeshDefinition;
+import net.minecraft.client.model.geom.builders.PartDefinition;
+import net.minecraft.util.Mth;
 
-public class StingrayModel {
-	public static LayerDefinition createBodyLayer() {
-		MeshDefinition meshdefinition = new MeshDefinition();
-		PartDefinition partdefinition = meshdefinition.getRoot();
+public class StingrayModel extends EntityModel<StingrayRenderState> {
+    private final ModelPart body;
+    private final ModelPart leftWing;
+    private final ModelPart rightWing;
+    private final ModelPart tail;
 
-		PartDefinition body = partdefinition.addOrReplaceChild("body", CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -1.0F, -6.0F, 8.0F, 2.0F, 12.0F, new CubeDeformation(0.0F))
-		.texOffs(24, 0).addBox(-3.0F, -0.5F, -8.0F, 6.0F, 1.5F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 22.0F, 0.0F));
+    public StingrayModel(ModelPart root) {
+        super(root);
+        this.body = root.getChild("body");
+        this.leftWing = this.body.getChild("left_wing");
+        this.rightWing = this.body.getChild("right_wing");
+        this.tail = this.body.getChild("tail");
+    }
 
-		PartDefinition left_wing = body.addOrReplaceChild("left_wing", CubeListBuilder.create().texOffs(0, 14).addBox(-5.0F, -0.5F, -5.0F, 5.0F, 1.3F, 10.0F, new CubeDeformation(0.0F)), PartPose.offset(-4.0F, 0.0F, 0.0F));
+    public static LayerDefinition createBodyLayer() {
+        MeshDefinition mesh = new MeshDefinition();
+        PartDefinition root = mesh.getRoot();
 
-		PartDefinition left_wing_tip = left_wing.addOrReplaceChild("left_wing_tip", CubeListBuilder.create().texOffs(28, 14).addBox(-5.0F, -0.4F, -3.5F, 5.0F, 0.8F, 7.0F, new CubeDeformation(0.0F)), PartPose.offset(-5.0F, 0.2F, 0.0F));
+        PartDefinition body = root.addOrReplaceChild("body",
+                CubeListBuilder.create()
+                        .texOffs(0, 0).addBox(-4.5F, -1.5F, -6.0F, 9.0F, 3.0F, 12.0F, CubeDeformation.NONE)
+                        .texOffs(0, 16).addBox(-3.0F, -1.0F, -8.5F, 6.0F, 2.0F, 2.5F, CubeDeformation.NONE),
+                PartPose.offset(0.0F, 22.0F, 0.0F));
 
-		PartDefinition right_wing = body.addOrReplaceChild("right_wing", CubeListBuilder.create().texOffs(0, 26).addBox(0.0F, -0.5F, -5.0F, 5.0F, 1.3F, 10.0F, new CubeDeformation(0.0F)), PartPose.offset(4.0F, 0.0F, 0.0F));
+        body.addOrReplaceChild("left_wing",
+                CubeListBuilder.create()
+                        .texOffs(20, 16).addBox(0.0F, -0.7F, -5.0F, 8.0F, 1.4F, 10.0F, CubeDeformation.NONE),
+                PartPose.offset(4.5F, 0.0F, 0.0F));
 
-		PartDefinition right_wing_tip = right_wing.addOrReplaceChild("right_wing_tip", CubeListBuilder.create().texOffs(28, 26).addBox(0.0F, -0.4F, -3.5F, 5.0F, 0.8F, 7.0F, new CubeDeformation(0.0F)), PartPose.offset(5.0F, 0.2F, 0.0F));
+        body.addOrReplaceChild("right_wing",
+                CubeListBuilder.create()
+                        .texOffs(20, 28).addBox(-8.0F, -0.7F, -5.0F, 8.0F, 1.4F, 10.0F, CubeDeformation.NONE),
+                PartPose.offset(-4.5F, 0.0F, 0.0F));
 
-		PartDefinition tail_base = body.addOrReplaceChild("tail_base", CubeListBuilder.create().texOffs(0, 38).addBox(-1.0F, -0.5F, 0.0F, 2.0F, 1.0F, 6.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 0.2F, 6.0F));
+        body.addOrReplaceChild("tail",
+                CubeListBuilder.create()
+                        .texOffs(0, 22).addBox(-0.8F, -0.8F, 0.0F, 1.6F, 1.6F, 13.0F, CubeDeformation.NONE),
+                PartPose.offset(0.0F, 0.0F, 6.0F));
 
-		PartDefinition tail_tip = tail_base.addOrReplaceChild("tail_tip", CubeListBuilder.create().texOffs(16, 38).addBox(-0.5F, -0.3F, 0.0F, 1.0F, 0.6F, 6.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 0.0F, 6.0F));
+        return LayerDefinition.create(mesh, 64, 64);
+    }
 
-		return LayerDefinition.create(meshdefinition, 64, 64);
-	}
+    @Override
+    public void setupAnim(StingrayRenderState state) {
+        super.setupAnim(state);
+        float t = state.ageInTicks * 0.25F + state.walkAnimationPos * 0.6F;
+        float amp = 0.30F + Math.min(state.walkAnimationSpeed, 1.0F) * 0.25F;
+
+        this.body.y = 22.0F + Mth.sin(t) * 0.5F;
+        this.leftWing.zRot = Mth.sin(t) * amp;
+        this.rightWing.zRot = -Mth.sin(t) * amp;
+        this.tail.yRot = Mth.cos(t * 0.7F) * 0.30F;
+        this.tail.xRot = Mth.sin(t * 0.7F) * 0.14F;
+    }
 }
