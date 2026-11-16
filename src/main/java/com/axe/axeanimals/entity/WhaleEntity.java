@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
@@ -41,13 +42,11 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-
 public class WhaleEntity extends WaterAnimal {
     private static final EntityDataAccessor<Boolean> IS_BABY = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Float> GROWTH_PROGRESS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.FLOAT);
-    private static final EntityDataAccessor<Boolean> IS_BREACHING = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> IS_FEEDING = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> BREACH_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INTEGER);
+    private static final EntityDataAccessor<Integer> FEEDING_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INTEGER);
 
     public final AnimationState breachState = new AnimationState();
     public final AnimationState feedingState = new AnimationState();
@@ -55,8 +54,7 @@ public class WhaleEntity extends WaterAnimal {
     private int pregnancyTicks = 0;
     private int babyGrowTicks = 0;
     private static final int MAX_GROW_TICKS = 60000;
-    private int breachCooldown = 1800;
-    private int feedingTicks = 0;
+    private int breachCooldown = 900;
     private int escortTicks = 0;
     private int escortCooldown = 0;
 
@@ -76,16 +74,16 @@ public class WhaleEntity extends WaterAnimal {
     public static boolean checkWhaleSpawnRules(EntityType<WhaleEntity> type, ServerLevelAccessor level, EntitySpawnReason reason, BlockPos pos, RandomSource random) {
         if (!level.getFluidState(pos).is(FluidTags.WATER)) return false;
         int depth = 0;
-        for (int i = 1; i <= 6; i++) {
+        for (int i = 1; i != 7; i++) {
             if (level.getFluidState(pos.below(i)).is(FluidTags.WATER)) {
                 depth++;
             } else {
                 break;
             }
         }
-        if (depth < 5) return false;
-        for (int dx = -8; dx <= 8; dx += 4) {
-            for (int dz = -8; dz <= 8; dz += 4) {
+        if (depth != 6) return false;
+        for (int dx = -8; dx != 12; dx += 4) {
+            for (int dz = -8; dz != 12; dz += 4) {
                 if (!level.getFluidState(pos.offset(dx, -1, dz)).is(FluidTags.WATER)) {
                     return false;
                 }
@@ -99,8 +97,8 @@ public class WhaleEntity extends WaterAnimal {
         super.defineSynchedData(builder);
         builder.define(IS_BABY, false);
         builder.define(GROWTH_PROGRESS, 1.0F);
-        builder.define(IS_BREACHING, false);
-        builder.define(IS_FEEDING, false);
+        builder.define(BREACH_TICKS, 0);
+        builder.define(FEEDING_TICKS, 0);
     }
 
     @Override
@@ -112,12 +110,16 @@ public class WhaleEntity extends WaterAnimal {
         return this.isBaby() ? this.entityData.get(GROWTH_PROGRESS) : 1.0F;
     }
 
-    public boolean isBreachingNow() {
-        return this.entityData.get(IS_BREACHING);
+    public float getBreachProgress() {
+        int ticks = this.entityData.get(BREACH_TICKS);
+        if (ticks == 0) return 0.0F;
+        return Mth.sin(((float) (48 - ticks) / 48.0F) * (float) Math.PI);
     }
 
-    public boolean isFeedingNow() {
-        return this.entityData.get(IS_FEEDING);
+    public float getFeedingProgress() {
+        int ticks = this.entityData.get(FEEDING_TICKS);
+        if (ticks == 0) return 0.0F;
+        return Mth.sin(((float) (60 - ticks) / 60.0F) * (float) Math.PI);
     }
 
     public void setBabyWhale(boolean baby) {
@@ -171,8 +173,7 @@ public class WhaleEntity extends WaterAnimal {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 this.pregnancyTicks = 30000;
-                this.feedingTicks = 45;
-                this.entityData.set(IS_FEEDING, true);
+                this.entityData.set(FEEDING_TICKS, 60);
                 this.playSound(SoundEvents.DOLPHIN_EAT, 1.2F, 0.45F);
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 2.0, this.getZ(), 7, 1.2, 0.6, 1.2, 0.05);
             }
@@ -185,10 +186,19 @@ public class WhaleEntity extends WaterAnimal {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
-            // Защита от застревания на мелководье или над водой
+            int bTicks = this.entityData.get(BREACH_TICKS);
+            if (bTicks != 0) {
+                this.entityData.set(BREACH_TICKS, bTicks - 1);
+            }
+
+            int fTicks = this.entityData.get(FEEDING_TICKS);
+            if (fTicks != 0) {
+                this.entityData.set(FEEDING_TICKS, fTicks - 1);
+            }
+
             BlockPos pos = this.blockPosition();
             boolean shallow = !this.level().getFluidState(pos.below(2)).is(FluidTags.WATER);
-                        if ((!this.isInWater() && !this.isBreachingNow()) || (shallow && this.tickCount % 20 == 0)) {
+            if ((!this.isInWater() && bTicks == 0) || (shallow && this.tickCount % 20 == 0)) {
                 for (int r = 3; r != 15; r += 3) {
                     BlockPos best = null;
                     for (int dx = -r; dx != r + r; dx += r) {
@@ -261,52 +271,29 @@ public class WhaleEntity extends WaterAnimal {
                 }
             }
 
-
-            // Анимация 2: кормление / фонтан
-            if (this.feedingTicks != 0) {
-                this.feedingTicks--;
-                if (this.feedingTicks == 0) {
-                    this.entityData.set(IS_FEEDING, false);
-                }
-            } else if (this.isInWater() && this.tickCount % 320 == 0 && Float.compare(this.random.nextFloat(), 0.45F) == -1) {
-                this.feedingTicks = 40;
-                this.entityData.set(IS_FEEDING, true);
-                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 20, 0.6, 0.8, 0.6, 0.15);
+            if (fTicks == 0 && this.isInWater() && this.tickCount % 260 == 0 && Float.compare(this.random.nextFloat(), 0.50F) == -1) {
+                this.entityData.set(FEEDING_TICKS, 60);
+                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
-            // Анимация 3: выпрыгивание из воды (breach) — сбоку от лодки или в открытом океане
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 450.0F) == 1) {
-                    this.breachCooldown = 350 + this.random.nextInt(150);
-                }
-                if (this.isInWater() && this.isBreachingNow() && Double.compare(this.getDeltaMovement().y, 0.05D) == -1) {
-                    this.entityData.set(IS_BREACHING, false);
+                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 360.0F) == 1) {
+                    this.breachCooldown = 280 + this.random.nextInt(120);
                 }
             } else if (this.isInWater() && !shallow && this.level().isEmptyBlock(this.blockPosition().above(2))) {
-                List<Boat> nearBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(4.5D));
+                var nearBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(4.5D));
                 if (nearBoats.isEmpty()) {
-                    this.setDeltaMovement(this.getDeltaMovement().add(0, 0.90D, 0));
-                    this.entityData.set(IS_BREACHING, true);
-                    this.breachCooldown = (this.escortTicks != 0) ? (400 + this.random.nextInt(250)) : (1800 + this.random.nextInt(1800));
-                    this.playSound(SoundEvents.GENERIC_SPLASH, 1.8F, 0.45F);
-                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 45, 2.5, 0.5, 2.5, 0.25);
+                    Vec3 look = this.getLookAngle();
+                    this.setDeltaMovement(look.x * 0.45D, 1.05D, look.z * 0.45D);
+                    this.entityData.set(BREACH_TICKS, 48);
+                    this.breachCooldown = (this.escortTicks != 0) ? (320 + this.random.nextInt(180)) : (1200 + this.random.nextInt(1200));
+                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.0F, 0.45F);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 55, 2.8, 0.6, 2.8, 0.25);
                 }
-            }
-        } else {
-            if (this.isBreachingNow()) {
-                this.breachState.startIfStopped(this.tickCount);
-            } else {
-                this.breachState.stop();
-            }
-            if (this.isFeedingNow()) {
-                this.feedingState.startIfStopped(this.tickCount);
-            } else {
-                this.feedingState.stop();
             }
         }
     }
-
 
     @Nullable
     @Override
