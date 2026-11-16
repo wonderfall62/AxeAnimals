@@ -186,13 +186,15 @@ public class AxeAnimalsClient {
                     tb.yRot = Mth.cos(swim * 0.7F) * 0.20F;
                     if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.cos(swim * 0.7F - 0.7F) * 0.28F;
                 }
-            } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("Chest")) {
+                   } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("Chest")) {
                 ModelPart chest = this.rootPart.getChild("Chest");
-                ModelPart body = chest.getChild("Body");
+                ModelPart body = chest.hasChild("BackPoint") ? chest.getChild("BackPoint").getChild("Body") : chest.getChild("Body");
                 ModelPart hips = body.getChild("Hips");
                 ModelPart neck = chest.getChild("Neck");
                 ModelPart head = neck.getChild("Head");
-                ModelPart mouth = head.getChild("Mouth");
+                ModelPart snout = head.getChild("Snout");
+                ModelPart mouth = snout.hasChild("Mouth") ? snout.getChild("Mouth") : head.getChild("Mouth");
+                ModelPart legParent = chest.hasChild("BackPoint") ? body : hips;
 
                 if (state.isStretching && !state.isInWater) {
                     chest.y += 2.2F;
@@ -201,8 +203,8 @@ public class AxeAnimalsClient {
                     head.xRot = 0.15F;
                     chest.getChild("ArmBaseLeft").xRot = -1.15F;
                     chest.getChild("ArmBaseRight").xRot = -1.15F;
-                    hips.getChild("ThighLeft").xRot = -0.35F;
-                    hips.getChild("ThighRight").xRot = -0.35F;
+                    legParent.getChild("ThighLeft").xRot = -0.35F;
+                    legParent.getChild("ThighRight").xRot = -0.35F;
                     ModelPart t1 = hips.getChild("Tail1");
                     t1.xRot = -0.35F;
                     t1.getChild("Tail2").xRot = 0.45F;
@@ -232,14 +234,14 @@ public class AxeAnimalsClient {
                     ar.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.45F * lSpeed;
                     far.xRot = 0.0873F + Math.max(0.0F, -Mth.sin(lPos + (float) Math.PI)) * 0.35F * lSpeed;
 
-                    ModelPart tl = hips.getChild("ThighLeft");
+                    ModelPart tl = legParent.getChild("ThighLeft");
                     ModelPart ull = tl.getChild("UpperLegLeft");
                     ModelPart lll = ull.getChild("LowerLegLeft");
                     tl.xRot = -0.1745F + Mth.cos(lPos + (float) Math.PI) * 0.68F * lSpeed;
                     ull.xRot = 0.3491F + Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.40F * lSpeed;
                     lll.xRot = -0.2618F - Math.max(0.0F, Mth.sin(lPos + (float) Math.PI)) * 0.35F * lSpeed;
 
-                    ModelPart tr = hips.getChild("ThighRight");
+                    ModelPart tr = legParent.getChild("ThighRight");
                     ModelPart ulr = tr.getChild("UpperLegRight");
                     ModelPart llr = ulr.getChild("LowerLegRight");
                     tr.xRot = -0.1745F + Mth.cos(lPos) * 0.68F * lSpeed;
@@ -255,6 +257,7 @@ public class AxeAnimalsClient {
             }
         }
     }
+
 
     @SubscribeEvent
     public static void registerLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
