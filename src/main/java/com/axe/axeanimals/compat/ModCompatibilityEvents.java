@@ -1,7 +1,6 @@
 package com.axe.axeanimals.compat;
 
 import com.axe.axeanimals.entity.WhaleEntity;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -11,24 +10,20 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.dolphin.Dolphin;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.List;
 
 public class ModCompatibilityEvents {
+
     @SubscribeEvent
     public static void onMobFinalizeSpawn(FinalizeSpawnEvent event) {
         Mob mob = event.getEntity();
@@ -69,43 +64,6 @@ public class ModCompatibilityEvents {
             }
             event.setCancellationResult(InteractionResult.SUCCESS);
             event.setCanceled(true);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent.Post event) {
-        Player player = event.getEntity();
-        if (player.level().isClientSide() || !(player.level() instanceof ServerLevel serverLevel)) return;
-        if (player.tickCount < 600 || player.tickCount % 600 != 0) return;
-        if (Float.compare(serverLevel.getRandom().nextFloat(), 0.12F) != -1) return;
-
-        List<Entity> existingDragons = serverLevel.getEntities(player, new AABB(player.blockPosition()).inflate(96.0D), e -> {
-            Identifier k = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());
-            return k.getNamespace().equals("iceandfire") && k.getPath().contains("dragon") && !k.getPath().contains("egg") && !k.getPath().contains("skull");
-        });
-        if (!existingDragons.isEmpty()) return;
-
-        double angle = serverLevel.getRandom().nextDouble() * Math.PI * 2.0D;
-        double dist = 80.0D + serverLevel.getRandom().nextDouble() * 35.0D;
-        int x = (int) (player.getX() + Math.cos(angle) * dist);
-        int z = (int) (player.getZ() + Math.sin(angle) * dist);
-        if (!serverLevel.isLoaded(new BlockPos(x, 64, z))) return;
-
-        int y = serverLevel.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-        BlockPos pos = new BlockPos(x, y, z);
-        if (!serverLevel.getFluidState(pos.below()).isEmpty()) return;
-
-        float temp = serverLevel.getBiome(pos).value().getBaseTemperature();
-        String dragonId = Float.compare(temp, 0.25F) == -1 ? "iceandfire:ice_dragon"
-                : (Float.compare(temp, 1.35F) == 1 ? "iceandfire:lightning_dragon" : "iceandfire:fire_dragon");
-
-        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(dragonId)).orElse(null);
-        if (type != null) {
-            Entity dragon = type.create(serverLevel, EntitySpawnReason.NATURAL);
-            if (dragon != null) {
-                dragon.snapTo(x + 0.5D, y + 1.0D, z + 0.5D, serverLevel.getRandom().nextFloat() * 360.0F, 0.0F);
-                serverLevel.addFreshEntity(dragon);
-            }
         }
     }
 
