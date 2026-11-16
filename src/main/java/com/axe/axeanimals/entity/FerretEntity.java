@@ -81,3 +81,22 @@ public class FerretEntity extends Animal {
         return ModEntities.FERRET.get().create(level, EntitySpawnReason.BREEDING);
     }
 }
+ @Override
+    protected net.minecraft.sounds.SoundEvent getAmbientSound() {
+        return net.minecraft.sounds.SoundEvents.FOX_AMBIENT;
+    }
+
+    @Override
+    protected net.minecraft.sounds.SoundEvent getHurtSound(net.minecraft.world.damagesource.DamageSource source) {
+        return net.minecraft.sounds.SoundEvents.FOX_HURT;
+    }
+
+    @Override
+    protected net.minecraft.sounds.SoundEvent getDeathSound() {
+        return net.minecraft.sounds.SoundEvents.FOX_DEATH;
+    }
+
+    @Override
+    public float getVoicePitch() {
+        return this.isBaby() ? 1.85F : 1.55F;
+    }
