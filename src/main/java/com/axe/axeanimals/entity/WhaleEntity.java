@@ -10,7 +10,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
@@ -48,27 +47,24 @@ public class WhaleEntity extends WaterAnimal {
     private static final EntityDataAccessor<Integer> BREACH_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> FEEDING_TICKS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.INT);
 
-
     public final AnimationState breachState = new AnimationState();
     public final AnimationState feedingState = new AnimationState();
 
     private int pregnancyTicks = 0;
     private int babyGrowTicks = 0;
     private static final int MAX_GROW_TICKS = 60000;
-    private int breachCooldown = 900;
-    private int escortTicks = 0;
-    private int escortCooldown = 0;
+    private int breachCooldown = 220;
 
     public WhaleEntity(EntityType<? extends WaterAnimal> type, Level level) {
         super(type, level);
-        this.moveControl = new SmoothSwimmingMoveControl(this, 45, 5, 0.02F, 0.1F, true);
-        this.lookControl = new SmoothSwimmingLookControl(this, 10);
+        this.moveControl = new SmoothSwimmingMoveControl(this, 35, 4, 0.02F, 0.1F, true);
+        this.lookControl = new SmoothSwimmingLookControl(this, 8);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return WaterAnimal.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 110.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.85D)
+                .add(Attributes.MOVEMENT_SPEED, 0.80D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D);
     }
 
@@ -83,8 +79,8 @@ public class WhaleEntity extends WaterAnimal {
             }
         }
         if (depth != 6) return false;
-        for (int dx = -8; dx != 12; dx += 4) {
-            for (int dz = -8; dz != 12; dz += 4) {
+        for (int dx = -10; dx != 15; dx += 5) {
+            for (int dz = -10; dz != 15; dz += 5) {
                 if (!level.getFluidState(pos.offset(dx, -1, dz)).is(FluidTags.WATER)) {
                     return false;
                 }
@@ -114,13 +110,13 @@ public class WhaleEntity extends WaterAnimal {
     public float getBreachProgress() {
         int ticks = this.entityData.get(BREACH_TICKS);
         if (ticks == 0) return 0.0F;
-        return Mth.sin(((float) (48 - ticks) / 48.0F) * (float) Math.PI);
+        return (float) (50 - ticks) / 50.0F;
     }
 
     public float getFeedingProgress() {
         int ticks = this.entityData.get(FEEDING_TICKS);
         if (ticks == 0) return 0.0F;
-        return Mth.sin(((float) (60 - ticks) / 60.0F) * (float) Math.PI);
+        return (float) Math.sin(((float) (60 - ticks) / 60.0F) * Math.PI);
     }
 
     public void setBabyWhale(boolean baby) {
@@ -137,7 +133,7 @@ public class WhaleEntity extends WaterAnimal {
 
     @Override
     protected void registerGoals() {
-        this.goalSelector.addGoal(1, new RandomSwimmingGoal(this, 1.0D, 30));
+        this.goalSelector.addGoal(1, new RandomSwimmingGoal(this, 1.0D, 40));
     }
 
     @Nullable
@@ -199,12 +195,20 @@ public class WhaleEntity extends WaterAnimal {
 
             BlockPos pos = this.blockPosition();
             boolean shallow = !this.level().getFluidState(pos.below(2)).is(FluidTags.WATER);
+            boolean tooHighOnSurface = !this.level().getFluidState(pos.above(1)).is(FluidTags.WATER);
+
+            // Удерживаем кита в толще воды под поверхностью, чтобы спина не зависала над водой
+            if (bTicks == 0 && tooHighOnSurface) {
+                Vec3 m = this.getDeltaMovement();
+                this.setDeltaMovement(m.x, Math.min(m.y, -0.08D), m.z);
+            }
+
             if ((!this.isInWater() && bTicks == 0) || (shallow && this.tickCount % 20 == 0)) {
-                for (int r = 3; r != 15; r += 3) {
+                for (int r = 4; r != 20; r += 4) {
                     BlockPos best = null;
                     for (int dx = -r; dx != r + r; dx += r) {
                         for (int dz = -r; dz != r + r; dz += r) {
-                            BlockPos check = pos.offset(dx, -1, dz);
+                            BlockPos check = pos.offset(dx, -2, dz);
                             if (this.level().getFluidState(check).is(FluidTags.WATER) && this.level().getFluidState(check.below(2)).is(FluidTags.WATER)) {
                                 best = check;
                                 break;
@@ -214,7 +218,7 @@ public class WhaleEntity extends WaterAnimal {
                     }
                     if (best != null) {
                         Vec3 dir = Vec3.atCenterOf(best).subtract(this.position()).normalize();
-                        this.setDeltaMovement(dir.x * 0.25D, -0.12D, dir.z * 0.25D);
+                        this.setDeltaMovement(dir.x * 0.25D, -0.14D, dir.z * 0.25D);
                         this.getNavigation().moveTo(best.getX(), best.getY(), best.getZ(), 1.15D);
                         break;
                     }
@@ -242,56 +246,41 @@ public class WhaleEntity extends WaterAnimal {
                 }
             }
 
-                        if (this.escortCooldown != 0) this.escortCooldown--;
-            if (this.escortTicks != 0) {
-                this.escortTicks--;
-                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(28.0D));
-                if (!boats.isEmpty()) {
-                    Boat targetBoat = boats.getFirst();
-                    Vec3 forward = targetBoat.getLookAngle();
-                    Vec3 side = new Vec3(-forward.z, 0, forward.x).normalize();
-                    Vec3 sideTarget = targetBoat.position().add(side.scale(9.5D)).add(forward.scale(3.0D));
-                    this.getNavigation().moveTo(sideTarget.x, targetBoat.getY() - 0.8D, sideTarget.z, 1.15D);
-
-                    if (targetBoat.getControllingPassenger() instanceof Player p) {
-                        p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, true, false));
-                    }
+            // Кит плавно обходит лодки стороной (на расстоянии 14 блоков), не сталкиваясь с ними
+            var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(24.0D));
+            if (!boats.isEmpty()) {
+                Boat nearestBoat = boats.getFirst();
+                if (nearestBoat.getControllingPassenger() instanceof Player p) {
+                    p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, true, false));
                 }
-                this.level().getEntitiesOfClass(Drowned.class, this.getBoundingBox().inflate(18.0D))
-                        .forEach(d -> d.setDeltaMovement(d.position().subtract(this.position()).normalize().scale(0.35D)));
-                if (this.escortTicks == 0) this.escortCooldown = 14000;
-            } else if (this.escortCooldown == 0 && this.tickCount % 60 == 0) {
-                var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(28.0D));
-                if (!boats.isEmpty()) {
-                    this.escortTicks = 1800;
+                if (Double.compare(this.distanceToSqr(nearestBoat), 144.0D) == -1 && this.tickCount % 15 == 0) {
+                    Vec3 away = this.position().subtract(nearestBoat.position()).normalize();
+                    Vec3 swimAway = this.position().add(away.scale(16.0D));
+                    this.getNavigation().moveTo(swimAway.x, this.getY() - 1.5D, swimAway.z, 1.1D);
                 }
             }
+
+            this.level().getEntitiesOfClass(Drowned.class, this.getBoundingBox().inflate(18.0D))
+                    .forEach(d -> d.setDeltaMovement(d.position().subtract(this.position()).normalize().scale(0.35D)));
 
             if (fTicks == 0 && this.isInWater() && this.tickCount % 220 == 0 && Float.compare(this.random.nextFloat(), 0.55F) == -1) {
                 this.entityData.set(FEEDING_TICKS, 60);
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
-            // Прыжок из воды: теперь срабатывает прямо из толщи воды без блокировки!
+            // Прыжок по красивой дуге (нос вверх на взлёте -> нос вниз на нырке)
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 260.0F) == 1) {
-                    this.breachCooldown = 200 + this.random.nextInt(100);
-                }
-            } else if (this.isInWater() && !shallow) {
-                var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(6.0D));
-                if (tooCloseBoats.isEmpty()) {
-                    Vec3 look = this.getLookAngle();
-                    this.setDeltaMovement(look.x * 0.50D, 1.12D, look.z * 0.50D);
-                    this.entityData.set(BREACH_TICKS, 52);
-                    this.breachCooldown = (this.escortTicks != 0) ? (240 + this.random.nextInt(140)) : (600 + this.random.nextInt(600));
-                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.0F, 0.45F);
-                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 60, 3.0, 0.6, 3.0, 0.25);
-                }
+            } else if (this.isInWater() && !shallow && boats.isEmpty()) {
+                Vec3 look = this.getLookAngle();
+                this.setDeltaMovement(look.x * 0.45D, 0.92D, look.z * 0.45D);
+                this.entityData.set(BREACH_TICKS, 50);
+                this.breachCooldown = 500 + this.random.nextInt(400);
+                this.playSound(SoundEvents.GENERIC_SPLASH, 2.0F, 0.45F);
+                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 60, 3.0, 0.6, 3.0, 0.25);
             }
         }
     }
-
 
     @Nullable
     @Override
