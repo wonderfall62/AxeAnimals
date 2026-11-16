@@ -30,33 +30,6 @@
         "min_inclusive": 2,
         "max_inclusive": 4
       }
-    },
-    {
-      "type": "minecraft:dolphin",
-      "weight": 18,
-      "count": {
-        "type": "minecraft:uniform",
-        "min_inclusive": 5,
-        "max_inclusive": 6
-      }
-    },
-    {
-      "type": "minecraft:cod",
-      "weight": 20,
-      "count": {
-        "type": "minecraft:uniform",
-        "min_inclusive": 4,
-        "max_inclusive": 6
-      }
-    },
-    {
-      "type": "minecraft:salmon",
-      "weight": 18,
-      "count": {
-        "type": "minecraft:uniform",
-        "min_inclusive": 4,
-        "max_inclusive": 6
-      }
     }
   ]
 }
