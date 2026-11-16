@@ -47,95 +47,144 @@ public class AxeAnimalsClient {
             super.setupAnim(state);
             this.rootPart.getAllParts().forEach(ModelPart::resetPose);
 
-            float t = state.walkAnimationPos * 1.3F;
-            float speed = Math.min(state.walkAnimationSpeed * 1.5F, 1.2F);
+            float t = state.walkAnimationPos;
+            float speed = Math.min(state.walkAnimationSpeed, 1.0F);
             float age = state.ageInTicks;
 
             if (animalType.equals("ferret") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
                 if (state.isStanding) {
-                    body.y -= 1.5F;
-                    body.xRot = -1.15F;
-                    if (body.hasChild("hip")) body.getChild("hip").xRot = 0.25F;
-                    if (body.hasChild("neck")) body.getChild("neck").xRot = 0.65F;
-                    if (body.hasChild("leg_fl")) body.getChild("leg_fl").xRot = 1.15F;
-                    if (body.hasChild("leg_fr")) body.getChild("leg_fr").xRot = 1.15F;
-                    if (body.hasChild("hip") && body.getChild("hip").hasChild("leg_bl")) body.getChild("hip").getChild("leg_bl").xRot = 1.05F;
-                    if (body.hasChild("hip") && body.getChild("hip").hasChild("leg_br")) body.getChild("hip").getChild("leg_br").xRot = 1.05F;
-                } else {
-                    float wave = Mth.sin(t * 0.85F);
-                    body.y -= Math.abs(wave) * 0.7F * speed;
-                    body.xRot = wave * 0.18F * speed;
-                    if (body.hasChild("leg_fl")) body.getChild("leg_fl").xRot = Mth.cos(t * 0.85F) * 1.15F * speed;
-                    if (body.hasChild("leg_fr")) body.getChild("leg_fr").xRot = Mth.cos(t * 0.85F + 0.45F) * 1.15F * speed;
+                    body.y -= 4.2F;
+                    body.xRot = -1.42F;
+                    if (body.hasChild("leg_fl")) {
+                        body.getChild("leg_fl").xRot = 1.25F;
+                        body.getChild("leg_fl").zRot = -0.25F;
+                    }
+                    if (body.hasChild("leg_fr")) {
+                        body.getChild("leg_fr").xRot = 1.25F;
+                        body.getChild("leg_fr").zRot = 0.25F;
+                    }
                     if (body.hasChild("hip")) {
                         ModelPart hip = body.getChild("hip");
-                        hip.xRot = -wave * 0.26F * speed;
-                        if (hip.hasChild("leg_bl")) hip.getChild("leg_bl").xRot = Mth.cos(t * 0.85F + (float) Math.PI) * 1.15F * speed;
-                        if (hip.hasChild("leg_br")) hip.getChild("leg_br").xRot = Mth.cos(t * 0.85F + (float) Math.PI + 0.45F) * 1.15F * speed;
+                        hip.xRot = 0.15F;
+                        if (hip.hasChild("leg_bl")) hip.getChild("leg_bl").xRot = 1.27F;
+                        if (hip.hasChild("leg_br")) hip.getChild("leg_br").xRot = 1.27F;
+                        if (hip.hasChild("tail_base")) {
+                            hip.getChild("tail_base").xRot = 1.25F;
+                            if (hip.getChild("tail_base").hasChild("tail_tip")) {
+                                hip.getChild("tail_base").getChild("tail_tip").xRot = 0.20F;
+                            }
+                        }
+                    }
+                    if (body.hasChild("neck")) {
+                        ModelPart neck = body.getChild("neck");
+                        neck.xRot = 0.72F;
+                        if (neck.hasChild("head")) {
+                            ModelPart head = neck.getChild("head");
+                            head.xRot = 0.65F + state.xRot * ((float) Math.PI / 180F) * 0.4F;
+                            head.yRot = Mth.sin(age * 0.14F) * 0.35F;
+                        }
+                    }
+                } else {
+                    float fPos = t * 1.25F;
+                    float fSpeed = Math.min(speed * 1.4F, 1.15F);
+                    float wave = Mth.sin(fPos * 0.85F);
+                    body.y -= Math.abs(wave) * 0.65F * fSpeed;
+                    body.xRot = wave * 0.16F * fSpeed;
+
+                    if (body.hasChild("leg_fl")) body.getChild("leg_fl").xRot = Mth.cos(fPos * 0.85F) * 1.15F * fSpeed;
+                    if (body.hasChild("leg_fr")) body.getChild("leg_fr").xRot = Mth.cos(fPos * 0.85F + 0.5F) * 1.15F * fSpeed;
+
+                    if (body.hasChild("neck")) {
+                        ModelPart neck = body.getChild("neck");
+                        neck.xRot = -wave * 0.14F * fSpeed;
+                        if (neck.hasChild("head")) {
+                            neck.getChild("head").xRot = state.xRot * ((float) Math.PI / 180F) * 0.6F;
+                            neck.getChild("head").yRot = state.yRot * ((float) Math.PI / 180F) * 0.6F;
+                        }
+                    }
+
+                    if (body.hasChild("hip")) {
+                        ModelPart hip = body.getChild("hip");
+                        hip.xRot = -wave * 0.24F * fSpeed;
+                        if (hip.hasChild("leg_bl")) hip.getChild("leg_bl").xRot = Mth.cos(fPos * 0.85F + (float) Math.PI) * 1.15F * fSpeed;
+                        if (hip.hasChild("leg_br")) hip.getChild("leg_br").xRot = Mth.cos(fPos * 0.85F + (float) Math.PI + 0.5F) * 1.15F * fSpeed;
                         if (hip.hasChild("tail_base")) {
                             ModelPart tb = hip.getChild("tail_base");
-                            tb.yRot = Mth.sin(age * 0.18F + t * 0.5F) * 0.30F;
-                            if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.sin(age * 0.18F + t * 0.5F - 0.7F) * 0.45F;
+                            tb.yRot = Mth.sin(age * 0.18F + fPos * 0.5F) * 0.30F;
+                            if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.sin(age * 0.18F + fPos * 0.5F - 0.7F) * 0.45F;
                         }
                     }
                 }
-            } else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
+            }
+            else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
-                float swim = age * 0.13F + t * 0.4F;
-                body.xRot = state.isBreaching ? -0.65F : Mth.sin(swim) * 0.06F;
-                body.y += Mth.sin(swim) * 0.85F;
+                float swim = age * 0.065F + t * 0.22F;
+                body.xRot = state.isBreaching ? -0.65F : Mth.sin(swim) * 0.045F;
+                body.y += Mth.sin(swim) * 0.75F;
                 if (body.hasChild("tail_1")) {
                     ModelPart t1 = body.getChild("tail_1");
-                    t1.xRot = Mth.sin(swim - 0.4F) * 0.18F;
+                    t1.xRot = Mth.sin(swim - 0.4F) * 0.15F;
                     if (t1.hasChild("tail_2")) {
                         ModelPart t2 = t1.getChild("tail_2");
-                        t2.xRot = Mth.sin(swim - 1.0F) * 0.26F;
-                        if (t2.hasChild("tail_fluke")) t2.getChild("tail_fluke").xRot = Mth.sin(swim - 1.7F) * 0.35F;
+                        t2.xRot = Mth.sin(swim - 1.0F) * 0.22F;
+                        if (t2.hasChild("tail_fluke")) t2.getChild("tail_fluke").xRot = Mth.sin(swim - 1.7F) * 0.30F;
                     }
                 }
                 if (body.hasChild("left_fin")) {
                     ModelPart lf = body.getChild("left_fin");
-                    lf.zRot = -0.22F - Mth.cos(swim * 0.8F) * 0.16F;
-                    if (lf.hasChild("left_fin_tip")) lf.getChild("left_fin_tip").zRot = -0.10F - Mth.cos(swim * 0.8F - 0.6F) * 0.20F;
+                    lf.zRot = -0.22F - Mth.cos(swim * 0.75F) * 0.12F;
+                    if (lf.hasChild("left_fin_tip")) lf.getChild("left_fin_tip").zRot = -0.08F - Mth.cos(swim * 0.75F - 0.6F) * 0.15F;
                 }
                 if (body.hasChild("right_fin")) {
                     ModelPart rf = body.getChild("right_fin");
-                    rf.zRot = 0.22F + Mth.cos(swim * 0.8F) * 0.16F;
-                    if (rf.hasChild("right_fin_tip")) rf.getChild("right_fin_tip").zRot = 0.10F + Mth.cos(swim * 0.8F - 0.6F) * 0.20F;
+                    rf.zRot = 0.22F + Mth.cos(swim * 0.75F) * 0.12F;
+                    if (rf.hasChild("right_fin_tip")) rf.getChild("right_fin_tip").zRot = 0.08F + Mth.cos(swim * 0.75F - 0.6F) * 0.15F;
                 }
-            }
-            else if (animalType.equals("stingray") && this.rootPart.hasChild("body")) {
+            } else if (animalType.equals("stingray") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
-                float swim = age * 0.24F + t * 0.5F;
-                body.y += Mth.sin(swim) * 0.55F;
+                float swim = age * 0.13F + t * 0.32F;
+                body.y += Mth.sin(swim) * 0.45F;
                 if (body.hasChild("left_wing")) {
                     ModelPart lw = body.getChild("left_wing");
-                    lw.zRot = Mth.sin(swim) * 0.32F;
-                    if (lw.hasChild("left_wing_tip")) lw.getChild("left_wing_tip").zRot = Mth.sin(swim - 0.8F) * 0.38F;
+                    lw.zRot = Mth.sin(swim) * 0.26F;
+                    if (lw.hasChild("left_wing_tip")) lw.getChild("left_wing_tip").zRot = Mth.sin(swim - 0.8F) * 0.32F;
                 }
                 if (body.hasChild("right_wing")) {
                     ModelPart rw = body.getChild("right_wing");
-                    rw.zRot = -Mth.sin(swim) * 0.32F;
-                    if (rw.hasChild("right_wing_tip")) rw.getChild("right_wing_tip").zRot = -Mth.sin(swim - 0.8F) * 0.38F;
+                    rw.zRot = -Mth.sin(swim) * 0.26F;
+                    if (rw.hasChild("right_wing_tip")) rw.getChild("right_wing_tip").zRot = -Mth.sin(swim - 0.8F) * 0.32F;
                 }
                 if (body.hasChild("tail_base")) {
                     ModelPart tb = body.getChild("tail_base");
-                    tb.yRot = Mth.cos(swim * 0.7F) * 0.25F;
-                    if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.cos(swim * 0.7F - 0.7F) * 0.35F;
+                    tb.yRot = Mth.cos(swim * 0.7F) * 0.20F;
+                    if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.cos(swim * 0.7F - 0.7F) * 0.28F;
                 }
             } else if ((animalType.equals("lion") || animalType.equals("lioness")) && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
-                body.y -= Math.abs(Mth.sin(t * 0.66F)) * 0.6F * speed;
-                if (body.hasChild("leg_front_left")) body.getChild("leg_front_left").xRot = Mth.cos(t * 0.66F) * 1.1F * speed;
-                if (body.hasChild("leg_front_right")) body.getChild("leg_front_right").xRot = Mth.cos(t * 0.66F + (float) Math.PI) * 1.1F * speed;
-                if (body.hasChild("leg_back_left")) body.getChild("leg_back_left").xRot = Mth.cos(t * 0.66F + (float) Math.PI) * 1.1F * speed;
-                if (body.hasChild("leg_back_right")) body.getChild("leg_back_right").xRot = Mth.cos(t * 0.66F) * 1.1F * speed;
+                float lPos = t * 0.66F;
+                body.y -= Math.abs(Mth.sin(lPos)) * 0.35F * speed;
+                body.zRot = Mth.cos(lPos) * 0.04F * speed;
+
+                if (body.hasChild("neck")) {
+                    ModelPart neck = body.getChild("neck");
+                    neck.xRot = Math.abs(Mth.sin(lPos)) * 0.05F * speed;
+                    if (neck.hasChild("head")) {
+                        neck.getChild("head").xRot = state.xRot * ((float) Math.PI / 180F) * 0.65F;
+                        neck.getChild("head").yRot = state.yRot * ((float) Math.PI / 180F) * 0.65F;
+                    }
+                }
+
+                if (body.hasChild("leg_front_left")) body.getChild("leg_front_left").xRot = Mth.cos(lPos) * 0.75F * speed;
+                if (body.hasChild("leg_front_right")) body.getChild("leg_front_right").xRot = Mth.cos(lPos + (float) Math.PI) * 0.75F * speed;
+                if (body.hasChild("leg_back_left")) body.getChild("leg_back_left").xRot = Mth.cos(lPos + (float) Math.PI) * 0.75F * speed;
+                if (body.hasChild("leg_back_right")) body.getChild("leg_back_right").xRot = Mth.cos(lPos) * 0.75F * speed;
+
                 if (body.hasChild("tail_base")) {
                     ModelPart tb = body.getChild("tail_base");
                     tb.xRot = -0.55F;
-                    tb.yRot = Mth.sin(age * 0.14F + t * 0.4F) * 0.28F;
-                    if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.sin(age * 0.14F + t * 0.4F - 0.7F) * 0.42F;
+                    tb.yRot = Mth.sin(age * 0.11F + lPos * 0.4F) * 0.24F;
+                    if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.sin(age * 0.11F + lPos * 0.4F - 0.7F) * 0.36F;
                 }
             }
         }
