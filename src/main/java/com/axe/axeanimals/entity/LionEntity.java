@@ -116,7 +116,7 @@ public class LionEntity extends TamableAnimal {
                 }
             }
             // С редким шансом (18%) в прайде есть 2-3 львёнка
-            if (this.random.nextFloat() < 0.18F) {
+            if (Float.compare(this.random.nextFloat(), 0.18F) == -1) {
                 int cubs = 2 + this.random.nextInt(2);
                 for (int i = 0; i < cubs; i++) {
                     TamableAnimal cub = this.random.nextBoolean()
