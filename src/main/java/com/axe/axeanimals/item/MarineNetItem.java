@@ -99,15 +99,13 @@ public class MarineNetItem extends Item {
         return releaseEntity(context.getLevel(), context.getPlayer(), stack, spawnPos);
     }
 
-    private InteractionResult releaseEntity(Level level, Player player, ItemStack stack, BlockPos pos) {
+       private InteractionResult releaseEntity(Level level, Player player, ItemStack stack, BlockPos pos) {
         if (!level.isClientSide() && level instanceof ServerLevel serverLevel) {
             CustomData data = stack.get(DataComponents.CUSTOM_DATA);
             if (data != null) {
                 CompoundTag tag = data.copyTag().getCompoundOrEmpty("CapturedEntity");
-                ValueInput input = TagValueInput.create(ProblemReporter.DISCARDING, serverLevel.registryAccess(), tag);
-                Optional<Entity> loaded = EntityType.create(input, serverLevel, EntitySpawnReason.BUCKET);
-                if (loaded.isPresent()) {
-                    Entity entity = loaded.get();
+                Entity entity = EntityType.loadEntityRecursive(tag, serverLevel, EntitySpawnReason.BUCKET, e -> e);
+                if (entity != null) {
                     entity.snapTo(pos.getX() + 0.5D, pos.getY() + 0.1D, pos.getZ() + 0.5D, player != null ? player.getYRot() : 0.0F, 0.0F);
                     serverLevel.addFreshEntity(entity);
                     stack.remove(DataComponents.CUSTOM_DATA);
@@ -117,6 +115,7 @@ public class MarineNetItem extends Item {
         }
         return InteractionResult.SUCCESS;
     }
+
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
