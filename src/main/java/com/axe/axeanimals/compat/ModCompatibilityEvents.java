@@ -115,6 +115,24 @@ public class ModCompatibilityEvents {
         if (entity.level().isClientSide()) return;
 
         if (entity instanceof Dolphin dolphin) {
+            if (dolphin.tickCount == 10 && !dolphin.isBaby() && !dolphin.getPersistentData().getBooleanOr("AxePodChecked", false)) {
+                dolphin.getPersistentData().putBoolean("AxePodChecked", true);
+                List<Dolphin> nearby = dolphin.level().getEntitiesOfClass(Dolphin.class, dolphin.getBoundingBox().inflate(24.0D));
+                if (nearby.size() == 1 || nearby.size() == 2) {
+                    int extra = 5 - nearby.size() + dolphin.getRandom().nextInt(2);
+                    for (int i = 0; i != extra; i++) {
+                        Entity friend = dolphin.getType().create(dolphin.level(), EntitySpawnReason.NATURAL);
+                        if (friend instanceof Dolphin d) {
+                            d.getPersistentData().putBoolean("AxePodChecked", true);
+                            double ox = (dolphin.getRandom().nextDouble() - 0.5D) * 6.0D;
+                            double oz = (dolphin.getRandom().nextDouble() - 0.5D) * 6.0D;
+                            d.snapTo(dolphin.getX() + ox, dolphin.getY(), dolphin.getZ() + oz, dolphin.getRandom().nextFloat() * 360.0F, 0.0F);
+                            dolphin.level().addFreshEntity(d);
+                        }
+                    }
+                }
+            }
+
             int cd = dolphin.getPersistentData().getIntOr("AxeBreedCD", 0);
             if (cd != 0) {
                 dolphin.getPersistentData().putInt("AxeBreedCD", cd - 1);
