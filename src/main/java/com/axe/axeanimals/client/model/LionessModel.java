@@ -1,6 +1,6 @@
 package com.axe.axeanimals.client.model;
 
-import com.axe.axeanimals.client.renderer.state.LionessRenderState;
+import com.axe.axeanimals.client.renderer.LionessRenderState;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
