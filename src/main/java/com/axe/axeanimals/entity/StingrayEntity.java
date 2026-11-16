@@ -6,9 +6,11 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -25,11 +27,14 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.jetbrains.annotations.Nullable;
 
 public class StingrayEntity extends WaterAnimal {
     private static final EntityDataAccessor<Boolean> IS_BABY = SynchedEntityData.defineId(StingrayEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Float> GROWTH_PROGRESS = SynchedEntityData.defineId(StingrayEntity.class, EntityDataSerializers.FLOAT);
     private int breedCooldown = 0;
     private int babyGrowTicks = 0;
+    private static final int MAX_GROW_TICKS = 24000;
 
     public StingrayEntity(EntityType<? extends WaterAnimal> type, Level level) {
         super(type, level);
@@ -47,6 +52,7 @@ public class StingrayEntity extends WaterAnimal {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(IS_BABY, false);
+        builder.define(GROWTH_PROGRESS, 1.0F);
     }
 
     @Override
@@ -54,9 +60,14 @@ public class StingrayEntity extends WaterAnimal {
         return this.entityData.get(IS_BABY);
     }
 
+    public float getGrowthProgress() {
+        return this.isBaby() ? this.entityData.get(GROWTH_PROGRESS) : 1.0F;
+    }
+
     public void setBabyRay(boolean baby) {
         this.entityData.set(IS_BABY, baby);
-        this.babyGrowTicks = baby ? 24000 : 0;
+        this.babyGrowTicks = baby ? MAX_GROW_TICKS : 0;
+        this.entityData.set(GROWTH_PROGRESS, baby ? 0.0F : 1.0F);
     }
 
     @Override
@@ -67,6 +78,24 @@ public class StingrayEntity extends WaterAnimal {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(1, new RandomSwimmingGoal(this, 1.0D, 25));
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getAmbientSound() {
+        return SoundEvents.FISH_SWIM;
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.SALMON_HURT;
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getDeathSound() {
+        return SoundEvents.SALMON_DEATH;
     }
 
     @Override
@@ -97,6 +126,10 @@ public class StingrayEntity extends WaterAnimal {
             if (this.breedCooldown != 0) this.breedCooldown--;
             if (this.isBaby() && this.babyGrowTicks != 0) {
                 this.babyGrowTicks--;
+                if (this.babyGrowTicks % 200 == 0) {
+                    float progress = 1.0F - ((float) this.babyGrowTicks / (float) MAX_GROW_TICKS);
+                    this.entityData.set(GROWTH_PROGRESS, Math.max(0.0F, Math.min(1.0F, progress)));
+                }
                 if (this.babyGrowTicks == 0) this.setBabyRay(false);
             }
         }
@@ -112,7 +145,10 @@ public class StingrayEntity extends WaterAnimal {
     @Override
     protected void readAdditionalSaveData(ValueInput input) {
         super.readAdditionalSaveData(input);
-        this.entityData.set(IS_BABY, input.getBooleanOr("IsBabyRay", false));
+        boolean baby = input.getBooleanOr("IsBabyRay", false);
+        this.entityData.set(IS_BABY, baby);
         this.babyGrowTicks = input.getIntOr("BabyGrowTicks", 0);
+        float progress = baby ? 1.0F - ((float) this.babyGrowTicks / (float) MAX_GROW_TICKS) : 1.0F;
+        this.entityData.set(GROWTH_PROGRESS, Math.max(0.0F, Math.min(1.0F, progress)));
     }
 }
