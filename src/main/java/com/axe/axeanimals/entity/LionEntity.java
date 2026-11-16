@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 public class LionEntity extends TamableAnimal {
     private static final EntityDataAccessor<Integer> ROAR_TICKS = SynchedEntityData.defineId(LionEntity.class, EntityDataSerializers.INT);
     public final AnimationState roarState = new AnimationState();
+    private int sprintTicks = 0;
 
     public LionEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -37,13 +38,15 @@ public class LionEntity extends TamableAnimal {
     public static AttributeSupplier.Builder createAttributes() {
         return Animal.createAnimalAttributes()
                 .add(Attributes.MAX_HEALTH, 36.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.30D)
+                .add(Attributes.MOVEMENT_SPEED, 0.31D)
                 .add(Attributes.ATTACK_DAMAGE, 8.0D);
     }
-  @Override
+
+    @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
         return false;
     }
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
@@ -54,8 +57,8 @@ public class LionEntity extends TamableAnimal {
     protected void registerGoals() {
         this.goalSelector.addGoal(1, new FloatGoal(this));
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
-        this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.25D, true));
-        this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.1D, 10.0F, 2.0F));
+        this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.35D, true));
+        this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.15D, 10.0F, 2.0F));
         this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D));
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.9D));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 10.0F));
@@ -94,12 +97,61 @@ public class LionEntity extends TamableAnimal {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
+            if (this.tickCount == 5 && this.getPersistentData().getBooleanOr("NeedsPrideSpawn", false)) {
+                this.getPersistentData().remove("NeedsPrideSpawn");
+                ServerLevel sl = (ServerLevel) this.level();
+                for (int i = 0; i != 2; i++) {
+                    LionessEntity lioness = ModEntities.LIONESS.get().create(sl, EntitySpawnReason.NATURAL);
+                    if (lioness != null) {
+                        lioness.snapTo(this.getX() + (i + 1) * 1.5, this.getY(), this.getZ() + 1.5, this.getYRot(), 0);
+                        sl.addFreshEntity(lioness);
+                    }
+                }
+                if (Float.compare(this.random.nextFloat(), 0.25F) == -1) {
+                    int cubs = 2 + this.random.nextInt(2);
+                    for (int i = 0; i != cubs; i++) {
+                        TamableAnimal cub = this.random.nextBoolean()
+                                ? ModEntities.LION.get().create(sl, EntitySpawnReason.NATURAL)
+                                : ModEntities.LIONESS.get().create(sl, EntitySpawnReason.NATURAL);
+                        if (cub != null) {
+                            cub.setBaby(true);
+                            cub.snapTo(this.getX() - (i + 1), this.getY(), this.getZ() + 2.0, this.getYRot(), 0);
+                            sl.addFreshEntity(cub);
+                        }
+                    }
+                }
+            }
+
             int rt = this.entityData.get(ROAR_TICKS);
+            boolean moving = Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.002D) == 1;
+
             if (rt != 0) {
-                this.entityData.set(ROAR_TICKS, rt - 1);
-            } else if (!this.isBaby() && !this.isInWater() && this.onGround() && !this.isOrderedToSit() && this.random.nextInt(360) == 0) {
+                if (moving || this.isInWater() || this.isOrderedToSit()) {
+                    this.entityData.set(ROAR_TICKS, 0);
+                } else {
+                    this.getNavigation().stop();
+                    this.entityData.set(ROAR_TICKS, rt - 1);
+                }
+            } else if (!this.isBaby() && !this.isInWater() && this.onGround() && !this.isOrderedToSit()
+                    && !moving && this.sprintTicks == 0 && this.random.nextInt(320) == 0) {
                 this.entityData.set(ROAR_TICKS, 45);
                 this.playSound(SoundEvents.RAVAGER_ROAR, 0.95F, 0.72F);
+            }
+
+            if (this.sprintTicks != 0) {
+                this.sprintTicks--;
+                this.setSprinting(true);
+                if (this.getNavigation().isDone() && this.tickCount % 20 == 0) {
+                    double tx = this.getX() + (this.random.nextDouble() - 0.5D) * 28.0D;
+                    double tz = this.getZ() + (this.random.nextDouble() - 0.5D) * 28.0D;
+                    this.getNavigation().moveTo(tx, this.getY(), tz, 1.45D);
+                }
+            } else {
+                this.setSprinting(this.getTarget() != null);
+                if (!this.isInWater() && this.onGround() && !this.isOrderedToSit()
+                        && this.entityData.get(ROAR_TICKS) == 0 && this.random.nextInt(360) == 0) {
+                    this.sprintTicks = 130 + this.random.nextInt(70);
+                }
             }
         }
     }
@@ -130,26 +182,7 @@ public class LionEntity extends TamableAnimal {
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
         if (reason == EntitySpawnReason.NATURAL && !this.isBaby()) {
-            for (int i = 0; i != 2; i++) {
-                LionessEntity lioness = ModEntities.LIONESS.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
-                if (lioness != null) {
-                    lioness.snapTo(this.getX() + (i + 1) * 1.5, this.getY(), this.getZ() + 1.5, this.getYRot(), 0);
-                    level.addFreshEntity(lioness);
-                }
-            }
-            if (Float.compare(this.random.nextFloat(), 0.18F) == -1) {
-                int cubs = 2 + this.random.nextInt(2);
-                for (int i = 0; i != cubs; i++) {
-                    TamableAnimal cub = this.random.nextBoolean()
-                            ? ModEntities.LION.get().create(level.getLevel(), EntitySpawnReason.NATURAL)
-                            : ModEntities.LIONESS.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
-                    if (cub != null) {
-                        cub.setBaby(true);
-                        cub.snapTo(this.getX() - (i + 1), this.getY(), this.getZ() + 2.0, this.getYRot(), 0);
-                        level.addFreshEntity(cub);
-                    }
-                }
-            }
+            this.getPersistentData().putBoolean("NeedsPrideSpawn", true);
         }
         return super.finalizeSpawn(level, difficulty, reason, spawnData);
     }
