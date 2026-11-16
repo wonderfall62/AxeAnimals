@@ -251,6 +251,18 @@ public class WhaleEntity extends WaterAnimal {
                 if (this.babyGrowTicks == 0) this.setBabyWhale(false);
             }
 
+            // Китёнок всегда держится рядом с мамой (взрослым китом)
+            if (this.isBaby() && this.tickCount % 12 == 0) {
+                var adults = this.level().getEntitiesOfClass(WhaleEntity.class, this.getBoundingBox().inflate(36.0D), w -> !w.isBaby() && w != this);
+                if (!adults.isEmpty()) {
+                    WhaleEntity mom = adults.getFirst();
+                    if (Double.compare(this.distanceToSqr(mom), 32.0D) == 1) {
+                        Vec3 side = new Vec3(-mom.getLookAngle().z, 0, mom.getLookAngle().x).normalize().scale(3.8D);
+                        this.getNavigation().moveTo(mom.getX() + side.x, mom.getY(), mom.getZ() + side.z, 1.28D);
+                    }
+                }
+            }
+
             if (this.pregnancyTicks != 0) {
                 this.pregnancyTicks--;
                 if (this.pregnancyTicks == 0) {
@@ -262,6 +274,75 @@ public class WhaleEntity extends WaterAnimal {
                     }
                 }
             }
+
+            // Фонтан воды и пара из дыхала на спине кита (каждые ~10 секунд у поверхности)
+            if (this.isInWater() && this.tickCount % 200 == 0 && bTicks == 0) {
+                Vec3 look = this.getLookAngle();
+                double bx = this.getX() + look.x * 1.6D;
+                double by = this.getY() + 2.7D;
+                double bz = this.getZ() + look.z * 1.6D;
+                ServerLevel sl = (ServerLevel) this.level();
+                for (int h = 0; h != 6; h++) {
+                    sl.sendParticles(ParticleTypes.SPLASH, bx, by + h * 0.55D, bz, 12, 0.25D + h * 0.08D, 0.2D, 0.25D + h * 0.08D, 0.15D);
+                    sl.sendParticles(ParticleTypes.CLOUD, bx, by + h * 0.55D, bz, 2, 0.18D + h * 0.06D, 0.15D, 0.18D + h * 0.06D, 0.03D);
+                }
+                this.playSound(SoundEvents.DOLPHIN_BLOWHOLE, 1.6F, 0.45F);
+            }
+
+            if (this.escortCooldown != 0) this.escortCooldown--;
+            var boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(24.0D));
+            if (this.escortTicks != 0) {
+                this.escortTicks--;
+                if (!boats.isEmpty()) {
+                    Boat targetBoat = boats.getFirst();
+                    Vec3 forward = targetBoat.getLookAngle();
+                    Vec3 toWhale = this.position().subtract(targetBoat.position());
+                    double sideSign = Double.compare(forward.x * toWhale.z - forward.z * toWhale.x, 0.0D) == -1 ? -1.0D : 1.0D;
+                    Vec3 side = new Vec3(-forward.z * sideSign, 0, forward.x * sideSign).normalize();
+                    Vec3 escortPos = targetBoat.position().add(side.scale(6.8D)).add(forward.scale(2.5D));
+
+                    this.getNavigation().moveTo(escortPos.x, targetBoat.getY() - 1.2D, escortPos.z, 1.15D);
+                    if (targetBoat.getControllingPassenger() instanceof Player p) {
+                        p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, true, false));
+                    }
+                }
+                if (this.escortTicks == 0) this.escortCooldown = 12000;
+            } else if (this.escortCooldown == 0 && !boats.isEmpty() && this.tickCount % 60 == 0) {
+                this.escortTicks = 1200;
+            }
+
+            this.level().getEntitiesOfClass(Drowned.class, this.getBoundingBox().inflate(18.0D))
+                    .forEach(d -> d.setDeltaMovement(d.position().subtract(this.position()).normalize().scale(0.35D)));
+
+            if (fTicks == 0 && this.isInWater() && this.tickCount % 220 == 0 && Float.compare(this.random.nextFloat(), 0.55F) == -1) {
+                this.entityData.set(FEEDING_TICKS, 60);
+                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
+            }
+
+            // Мощный вылет кита из воды (поддерживаем подъём первые 5 тиков прыжка)
+            if (bTicks != 0 && Float.compare(bTicks, 44.0F) == 1) {
+                Vec3 m = this.getDeltaMovement();
+                this.setDeltaMovement(m.x, Math.max(m.y, 0.68D), m.z);
+            }
+
+            if (this.breachCooldown != 0) {
+                this.breachCooldown--;
+                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 280.0F) == 1) {
+                    this.breachCooldown = 220 + this.random.nextInt(100);
+                }
+            } else if (this.isInWater() && !shallow) {
+                var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(5.2D));
+                if (tooCloseBoats.isEmpty()) {
+                    Vec3 look = this.getLookAngle();
+                    this.setDeltaMovement(look.x * 0.62D, 1.38D, look.z * 0.62D);
+                    this.entityData.set(BREACH_TICKS, 50);
+                    this.breachCooldown = (this.escortTicks != 0) ? (260 + this.random.nextInt(140)) : (500 + this.random.nextInt(400));
+                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.2F, 0.45F);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 75, 3.2, 0.8, 3.2, 0.30);
+                }
+            }
+        }
+    }
 
             // Сопровождение лодки с того же борта (6.8 блоков сбоку), не пересекая курс перед носом лодки
             if (this.escortCooldown != 0) this.escortCooldown--;
