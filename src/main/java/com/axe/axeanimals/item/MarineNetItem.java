@@ -46,7 +46,7 @@ public class MarineNetItem extends Item {
     }
 
     private boolean isCatchable(Entity target) {
-        return (target instanceof WhaleEntity w && (w.isBaby() || Float.compare(w.getGrowthProgress(), 0.99F) == -1))
+        return target instanceof WhaleEntity
                 || target instanceof StingrayEntity
                 || target instanceof Dolphin
                 || target instanceof Squid
@@ -89,15 +89,14 @@ public class MarineNetItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
 
-        // Если сеть пуста — проверяем клик по длинному хитбоксу китёнка/ската в радиусе 8 блоков по взгляду
         if (data == null || !data.copyTag().contains("CapturedEntity")) {
             Vec3 eye = player.getEyePosition();
             Vec3 look = player.getLookAngle();
-            Vec3 end = eye.add(look.scale(8.5D));
-            AABB searchBox = player.getBoundingBox().expandTowards(look.scale(8.5D)).inflate(2.0D);
+            Vec3 end = eye.add(look.scale(12.0D));
+            AABB searchBox = player.getBoundingBox().expandTowards(look.scale(12.0D)).inflate(3.5D);
             List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e != player && isCatchable(e));
             LivingEntity best = candidates.stream()
-                    .filter(e -> e.getBoundingBox().inflate(1.2D).clip(eye, end).isPresent())
+                    .filter(e -> e.getBoundingBox().inflate(2.5D).clip(eye, end).isPresent())
                     .min(Comparator.comparingDouble(e -> e.distanceToSqr(player)))
                     .orElse(null);
             if (best != null) {
@@ -154,7 +153,7 @@ public class MarineNetItem extends Item {
             String name = data.copyTag().getStringOr("CapturedName", "Морской житель");
             tooltip.accept(Component.literal("§bПойман: §f" + name + " §7(ПКМ по воде/земле — выпустить)"));
         } else {
-            tooltip.accept(Component.literal("§7ПКМ по детёнышу кита, скату или рыбе — поймать"));
+            tooltip.accept(Component.literal("§7ПКМ по киту, скату, дельфину или рыбе — поймать"));
         }
     }
 }
