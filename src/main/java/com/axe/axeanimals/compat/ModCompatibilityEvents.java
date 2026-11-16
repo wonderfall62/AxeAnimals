@@ -46,18 +46,6 @@ public class ModCompatibilityEvents {
             if (Float.compare(mob.getRandom().nextFloat(), 0.80F) == -1) {
                 event.setSpawnCancelled(true);
             }
-        } else if (mob instanceof Dolphin && event.getSpawnType() == EntitySpawnReason.NATURAL && !mob.getPersistentData().getBooleanOr("AxePodMember", false)) {
-            int extra = 4 + mob.getRandom().nextInt(2);
-            for (int i = 0; i != extra; i++) {
-                Entity friend = mob.getType().create(mob.level(), EntitySpawnReason.NATURAL);
-                if (friend instanceof Dolphin d) {
-                    d.getPersistentData().putBoolean("AxePodMember", true);
-                    double ox = (mob.getRandom().nextDouble() - 0.5D) * 6.0D;
-                    double oz = (mob.getRandom().nextDouble() - 0.5D) * 6.0D;
-                    d.snapTo(mob.getX() + ox, mob.getY(), mob.getZ() + oz, mob.getRandom().nextFloat() * 360.0F, 0.0F);
-                    mob.level().addFreshEntity(d);
-                }
-            }
         }
     }
 
