@@ -1,6 +1,7 @@
 package com.axe.axeanimals.entity;
 
 import com.axe.axeanimals.registry.ModEntities;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -8,6 +9,8 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -35,6 +38,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -42,13 +46,17 @@ import java.util.List;
 public class WhaleEntity extends WaterAnimal {
     private static final EntityDataAccessor<Boolean> IS_BABY = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Float> GROWTH_PROGRESS = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> IS_BREACHING = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> IS_FEEDING = SynchedEntityData.defineId(WhaleEntity.class, EntityDataSerializers.BOOLEAN);
+
     public final AnimationState breachState = new AnimationState();
     public final AnimationState feedingState = new AnimationState();
 
     private int pregnancyTicks = 0;
     private int babyGrowTicks = 0;
     private static final int MAX_GROW_TICKS = 60000;
-    private int breachCooldown = 3600;
+    private int breachCooldown = 1800;
+    private int feedingTicks = 0;
     private int escortTicks = 0;
     private int escortCooldown = 0;
 
@@ -65,11 +73,34 @@ public class WhaleEntity extends WaterAnimal {
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D);
     }
 
+    public static boolean checkWhaleSpawnRules(EntityType<WhaleEntity> type, ServerLevelAccessor level, EntitySpawnReason reason, BlockPos pos, RandomSource random) {
+        if (!level.getFluidState(pos).is(FluidTags.WATER)) return false;
+        int depth = 0;
+        for (int i = 1; i <= 6; i++) {
+            if (level.getFluidState(pos.below(i)).is(FluidTags.WATER)) {
+                depth++;
+            } else {
+                break;
+            }
+        }
+        if (depth < 5) return false;
+        for (int dx = -8; dx <= 8; dx += 4) {
+            for (int dz = -8; dz <= 8; dz += 4) {
+                if (!level.getFluidState(pos.offset(dx, -1, dz)).is(FluidTags.WATER)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(IS_BABY, false);
         builder.define(GROWTH_PROGRESS, 1.0F);
+        builder.define(IS_BREACHING, false);
+        builder.define(IS_FEEDING, false);
     }
 
     @Override
@@ -79,6 +110,14 @@ public class WhaleEntity extends WaterAnimal {
 
     public float getGrowthProgress() {
         return this.isBaby() ? this.entityData.get(GROWTH_PROGRESS) : 1.0F;
+    }
+
+    public boolean isBreachingNow() {
+        return this.entityData.get(IS_BREACHING);
+    }
+
+    public boolean isFeedingNow() {
+        return this.entityData.get(IS_FEEDING);
     }
 
     public void setBabyWhale(boolean baby) {
@@ -123,7 +162,7 @@ public class WhaleEntity extends WaterAnimal {
 
     @Override
     public float getSoundVolume() {
-        return 2.0F;
+        return 1.8F;
     }
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
@@ -132,6 +171,8 @@ public class WhaleEntity extends WaterAnimal {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 this.pregnancyTicks = 30000;
+                this.feedingTicks = 45;
+                this.entityData.set(IS_FEEDING, true);
                 this.playSound(SoundEvents.DOLPHIN_EAT, 1.2F, 0.45F);
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 2.0, this.getZ(), 7, 1.2, 0.6, 1.2, 0.05);
             }
@@ -144,33 +185,22 @@ public class WhaleEntity extends WaterAnimal {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
-            if (this.isBaby() && this.babyGrowTicks != 0) {
-                this.babyGrowTicks--;
-                if (this.babyGrowTicks % 200 == 0) {
-                    float progress = 1.0F - ((float) this.babyGrowTicks / (float) MAX_GROW_TICKS);
-                    this.entityData.set(GROWTH_PROGRESS, Math.max(0.0F, Math.min(1.0F, progress)));
-                }
-                if (this.babyGrowTicks == 0) this.setBabyWhale(false);
-            }
-            if (this.pregnancyTicks != 0) {
-                this.pregnancyTicks--;
-                if (this.pregnancyTicks == 0) {
-                    WhaleEntity calf = ModEntities.WHALE.get().create(this.level(), EntitySpawnReason.BREEDING);
-                    if (calf != null) {
-                        calf.setBabyWhale(true);
-                        calf.snapTo(this.getX() + 2.5, this.getY(), this.getZ() + 2.5, this.getYRot(), 0);
-                        this.level().addFreshEntity(calf);
-                    }
-                }
-            }
-            if (this.escortCooldown != 0) this.escortCooldown--;
-            if (this.escortTicks != 0) {
-                this.escortTicks--;
-                List<Boat> boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(22.0D));
+            // Защита от застревания на мелководье или над водой
+            BlockPos pos = this.blockPosition();
+            boolean shallow = !this.level().getFluidState(pos.below(2)).is(FluidTags.WATER);
+            if ((!this.isInWater() && !this.isBreachingNow()) || (shallow && this.tickCount % 20 == 0)) {
+                for (int r = 3; r  boats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(24.0D));
                 if (!boats.isEmpty()) {
                     Boat targetBoat = boats.getFirst();
-                    if (Double.compare(this.distanceToSqr(targetBoat), 49.0D) == 1) {
-                        this.getNavigation().moveTo(targetBoat, 1.15D);
+                    Vec3 forward = targetBoat.getLookAngle();
+                    Vec3 side = new Vec3(-forward.z, 0, forward.x).normalize();
+                    Vec3 sideTarget = targetBoat.position().add(side.scale(5.8D)).add(forward.scale(2.0D));
+
+                    if (Double.compare(this.distanceToSqr(targetBoat), 18.0D) == -1) {
+                        Vec3 away = this.position().subtract(targetBoat.position()).normalize();
+                        this.setDeltaMovement(away.x * 0.22D, this.getDeltaMovement().y, away.z * 0.22D);
+                    } else {
+                        this.getNavigation().moveTo(sideTarget.x, targetBoat.getY() - 0.5D, sideTarget.z, 1.15D);
                     }
                     if (targetBoat.getControllingPassenger() instanceof Player p) {
                         p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 0, true, false));
@@ -185,23 +215,52 @@ public class WhaleEntity extends WaterAnimal {
                     this.escortTicks = 1800;
                 }
             }
+
+            // Анимация 2: кормление / фонтан
+            if (this.feedingTicks != 0) {
+                this.feedingTicks--;
+                if (this.feedingTicks == 0) {
+                    this.entityData.set(IS_FEEDING, false);
+                }
+            } else if (this.isInWater() && this.tickCount % 320 == 0 && Float.compare(this.random.nextFloat(), 0.45F) == -1) {
+                this.feedingTicks = 40;
+                this.entityData.set(IS_FEEDING, true);
+                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 20, 0.6, 0.8, 0.6, 0.15);
+            }
+
+            // Анимация 3: выпрыгивание из воды (breach) — сбоку от лодки или в открытом океане
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-            } else if (this.isInWater() && this.level().isEmptyBlock(this.blockPosition().above(2))) {
-                this.setDeltaMovement(this.getDeltaMovement().add(0, 0.85D, 0));
-                this.breachCooldown = 3600 + this.random.nextInt(2400);
-                this.playSound(SoundEvents.GENERIC_SPLASH, 1.8F, 0.45F);
-                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 40, 2.5, 0.5, 2.5, 0.2);
+                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 450.0F) == 1) {
+                    this.breachCooldown = 350 + this.random.nextInt(150);
+                }
+                if (this.isInWater() && this.isBreachingNow() && Double.compare(this.getDeltaMovement().y, 0.05D) == -1) {
+                    this.entityData.set(IS_BREACHING, false);
+                }
+            } else if (this.isInWater() && !shallow && this.level().isEmptyBlock(this.blockPosition().above(2))) {
+                List<Boat> nearBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(4.5D));
+                if (nearBoats.isEmpty()) {
+                    this.setDeltaMovement(this.getDeltaMovement().add(0, 0.90D, 0));
+                    this.entityData.set(IS_BREACHING, true);
+                    this.breachCooldown = (this.escortTicks != 0) ? (400 + this.random.nextInt(250)) : (1800 + this.random.nextInt(1800));
+                    this.playSound(SoundEvents.GENERIC_SPLASH, 1.8F, 0.45F);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 45, 2.5, 0.5, 2.5, 0.25);
+                }
             }
         } else {
-            if (!this.isInWater() && Double.compare(this.getDeltaMovement().y, 0.1D) == 1) {
+            if (this.isBreachingNow()) {
                 this.breachState.startIfStopped(this.tickCount);
-            } else if (this.onGround() || (this.isInWater() && Double.compare(this.getDeltaMovement().y, -0.2D) == -1)) {
+            } else {
                 this.breachState.stop();
             }
-            if (this.tickCount % 400 == 0) this.feedingState.start(this.tickCount);
+            if (this.isFeedingNow()) {
+                this.feedingState.startIfStopped(this.tickCount);
+            } else {
+                this.feedingState.stop();
+            }
         }
     }
+
 
     @Nullable
     @Override
@@ -210,7 +269,7 @@ public class WhaleEntity extends WaterAnimal {
             WhaleEntity calf = ModEntities.WHALE.get().create(level.getLevel(), EntitySpawnReason.NATURAL);
             if (calf != null) {
                 calf.setBabyWhale(true);
-                calf.snapTo(this.getX() + 3.0, this.getY(), this.getZ() + 3.0, this.getYRot(), 0);
+                calf.snapTo(this.getX() + 3.5, this.getY(), this.getZ() + 3.5, this.getYRot(), 0);
                 level.addFreshEntity(calf);
             }
         }
