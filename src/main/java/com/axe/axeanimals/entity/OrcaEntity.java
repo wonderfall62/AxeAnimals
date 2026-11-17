@@ -1,0 +1,337 @@
+package com.axe.axeanimals.entity;
+
+import com.axe.axeanimals.registry.ModEntities;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.control.SmoothSwimmingLookControl;
+import net.minecraft.world.entity.ai.control.SmoothSwimmingMoveControl;
+import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.world.entity.ai.goal.RandomSwimmingGoal;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.ai.navigation.WaterBoundPathNavigation;
+import net.minecraft.world.entity.animal.fish.AbstractFish;
+import net.minecraft.world.entity.animal.fish.WaterAnimal;
+import net.minecraft.world.entity.animal.squid.Squid;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.zombie.Drowned;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.UUID;
+
+public class OrcaEntity extends WaterAnimal {
+    private static final EntityDataAccessor<Boolean> IS_BABY = SynchedEntityData.defineId(OrcaEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> BREACH_TICKS = SynchedEntityData.defineId(OrcaEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> IS_TAMED = SynchedEntityData.defineId(OrcaEntity.class, EntityDataSerializers.BOOLEAN);
+
+    @Nullable
+    private UUID ownerUUID;
+    private int breachCooldown = 180;
+    private int breedCooldown = 0;
+    private int babyGrowTicks = 0;
+
+    public OrcaEntity(EntityType<? extends WaterAnimal> type, Level level) {
+        super(type, level);
+        this.moveControl = new SmoothSwimmingMoveControl(this, 65, 8, 0.025F, 0.12F, true);
+        this.lookControl = new SmoothSwimmingLookControl(this, 10);
+    }
+
+    public static AttributeSupplier.Builder createAttributes() {
+        return WaterAnimal.createMobAttributes()
+                .add(Attributes.MAX_HEALTH, 60.0D)
+                .add(Attributes.MOVEMENT_SPEED, 1.08D)
+                .add(Attributes.ATTACK_DAMAGE, 8.0D)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.65D);
+    }
+
+    @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false;
+    }
+
+    public static boolean checkOrcaSpawnRules(EntityType<OrcaEntity> type, ServerLevelAccessor level, EntitySpawnReason reason, BlockPos pos, RandomSource random) {
+        if (!level.getFluidState(pos).is(FluidTags.WATER)) return false;
+        return level.getFluidState(pos.below(3)).is(FluidTags.WATER);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(IS_BABY, false);
+        builder.define(BREACH_TICKS, 0);
+        builder.define(IS_TAMED, false);
+    }
+
+    @Override
+    public boolean isBaby() {
+        return this.entityData.get(IS_BABY);
+    }
+
+    public boolean isTamedOrca() {
+        return this.entityData.get(IS_TAMED);
+    }
+
+    public void setTamedOrca(boolean tamed, @Nullable Player owner) {
+        this.entityData.set(IS_TAMED, tamed);
+        this.ownerUUID = (tamed && owner != null) ? owner.getUUID() : null;
+        if (tamed) {
+            this.setTarget(null);
+            this.setHealth(this.getMaxHealth());
+        }
+    }
+
+    @Nullable
+    public Player getOwnerPlayer() {
+        if (this.ownerUUID == null) return null;
+        return this.level().getPlayerByUUID(this.ownerUUID);
+    }
+
+    public void setBabyOrca(boolean baby) {
+        this.entityData.set(IS_BABY, baby);
+        this.babyGrowTicks = baby ? 36000 : 0;
+        this.refreshDimensions();
+    }
+
+    public float getBreachProgress() {
+        int ticks = this.entityData.get(BREACH_TICKS);
+        if (ticks == 0) return 0.0F;
+        return (float) (40 - ticks) / 40.0F;
+    }
+
+    @Override
+    protected PathNavigation createNavigation(Level level) {
+        return new WaterBoundPathNavigation(this, level);
+    }
+    @Override
+    protected void registerGoals() {
+        this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.40D, true));
+        this.goalSelector.addGoal(2, new RandomSwimmingGoal(this, 1.05D, 25));
+
+        this.targetSelector.addGoal(1, new HurtByTargetGoal(this) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && !(this.mob.getLastHurtByMob() instanceof Player p && OrcaEntity.this.ownerUUID != null && OrcaEntity.this.ownerUUID.equals(p.getUUID()));
+            }
+        }.setAlertOthers());
+
+        // Прирученная косатка защищает хозяина только в воде (не выбрасывается на берег)
+        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Monster.class, 20, true, false,
+                (target, lvl) -> this.isTamedOrca() && target.isInWater()));
+
+        // Дикая косатка нападает на игрока в воде (если в руках нет Раковины наутилуса)
+        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, 40, true, false,
+                (target, lvl) -> !this.isTamedOrca() && !this.isBaby() && target.isInWater()
+                        && target instanceof Player p && !p.isCreative() && !p.isSpectator()
+                        && !p.getMainHandItem().is(Items.NAUTILUS_SHELL) && !p.getOffhandItem().is(Items.NAUTILUS_SHELL)));
+
+        this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Drowned.class, 120, true, false,
+                (target, lvl) -> target.isInWater()));
+        this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Squid.class, 180, true, false, null));
+        this.targetSelector.addGoal(6, new NearestAttackableTargetGoal<>(this, AbstractFish.class, 240, true, false,
+                (target, lvl) -> !this.isBaby() && !this.isTamedOrca() && !(target instanceof StingrayEntity)));
+    }
+
+    @Override
+    public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+
+        // Приручение редкой Раковиной наутилуса (Items.NAUTILUS_SHELL)
+        if (!this.isTamedOrca() && stack.is(Items.NAUTILUS_SHELL)) {
+            if (!this.level().isClientSide()) {
+                if (!player.getAbilities().instabuild) stack.shrink(1);
+                if (this.random.nextInt(3) == 0) {
+                    this.setTamedOrca(true, player);
+                    this.playSound(SoundEvents.DOLPHIN_PLAY, 1.3F, 0.85F);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 1.2, this.getZ(), 10, 0.9, 0.5, 0.9, 0.05);
+                } else {
+                    this.playSound(SoundEvents.DOLPHIN_EAT, 1.1F, 0.7F);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SMOKE, this.getX(), this.getY() + 1.2, this.getZ(), 6, 0.6, 0.4, 0.6, 0.03);
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // Кормление, лечение и размножение лососем или треской
+        if (!this.isBaby() && (stack.is(Items.SALMON) || stack.is(Items.COD)) && this.breedCooldown == 0) {
+            if (!this.level().isClientSide()) {
+                if (!player.getAbilities().instabuild) stack.shrink(1);
+                this.breedCooldown = 6000;
+                this.heal(10.0F);
+                this.playSound(SoundEvents.DOLPHIN_EAT, 1.1F, 0.75F);
+                ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 1.2, this.getZ(), 6, 0.8, 0.5, 0.8, 0.05);
+                OrcaEntity calf = ModEntities.ORCA.get().create(this.level(), EntitySpawnReason.BREEDING);
+                if (calf != null) {
+                    calf.setBabyOrca(true);
+                    if (this.isTamedOrca()) calf.setTamedOrca(true, player);
+                    calf.snapTo(this.getX() + 1.5, this.getY(), this.getZ() + 1.5, this.getYRot(), 0);
+                    this.level().addFreshEntity(calf);
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
+        return super.mobInteract(player, hand);
+    }
+    @Override
+    public void tick() {
+        super.tick();
+        if (!this.level().isClientSide()) {
+            // Спавн стаи строго из 3 косаток (вожак + 2 сородича)
+            if (this.tickCount == 5 && this.getPersistentData().getBooleanOr("NeedsPodSpawn", false)) {
+                this.getPersistentData().remove("NeedsPodSpawn");
+                ServerLevel sl = (ServerLevel) this.level();
+                int podCount = 2;
+                for (int i = 0; i != podCount; i++) {
+                    OrcaEntity mate = ModEntities.ORCA.get().create(sl, EntitySpawnReason.NATURAL);
+                    if (mate != null) {
+                        if (i == 1 && this.random.nextInt(3) == 0) {
+                            mate.setBabyOrca(true);
+                        }
+                        double ox = (this.random.nextDouble() - 0.5D) * 7.0D;
+                        double oz = (this.random.nextDouble() - 0.5D) * 7.0D;
+                        mate.snapTo(this.getX() + ox, this.getY(), this.getZ() + oz, this.getYRot(), 0);
+                        sl.addFreshEntity(mate);
+                    }
+                }
+            }
+
+            if (this.breedCooldown != 0) this.breedCooldown--;
+            if (this.isBaby() && this.babyGrowTicks != 0) {
+                this.babyGrowTicks--;
+                if (this.babyGrowTicks == 0) this.setBabyOrca(false);
+            }
+
+            int bTicks = this.entityData.get(BREACH_TICKS);
+            if (bTicks != 0) {
+                this.entityData.set(BREACH_TICKS, bTicks - 1);
+                if (Float.compare(bTicks, 35.0F) == 1) {
+                    Vec3 m = this.getDeltaMovement();
+                    this.setDeltaMovement(m.x, Math.max(m.y, 0.58D), m.z);
+                }
+            }
+
+            // Прирученная косатка плывёт за хозяином только пока сам хозяин в воде
+            if (this.isTamedOrca()) {
+                Player owner = this.getOwnerPlayer();
+                if (owner != null && owner.isInWater() && this.getTarget() == null && this.tickCount % 15 == 0) {
+                    double distSq = this.distanceToSqr(owner);
+                    if (Double.compare(distSq, 64.0D) == 1 && Double.compare(distSq, 1600.0D) == -1) {
+                        this.getNavigation().moveTo(owner, 1.35D);
+                    }
+                } else if (owner != null && !owner.isInWater() && this.getTarget() != null && !this.getTarget().isInWater()) {
+                    this.setTarget(null);
+                }
+            } else if (this.tickCount % 25 == 0) {
+                List<OrcaEntity> pod = this.level().getEntitiesOfClass(OrcaEntity.class, this.getBoundingBox().inflate(32.0D), o -> o != this && !o.isBaby() && !o.isTamedOrca());
+                if (!pod.isEmpty()) {
+                    OrcaEntity leader = pod.getFirst();
+                    if (Double.compare(this.distanceToSqr(leader), 120.0D) == 1) {
+                        this.getNavigation().moveTo(leader, 1.2D);
+                    }
+                }
+            }
+
+            boolean deepEnough = this.level().getFluidState(this.blockPosition().below(2)).is(FluidTags.WATER);
+            if (this.breachCooldown != 0) {
+                this.breachCooldown--;
+            } else if (this.isInWater() && deepEnough && this.getTarget() == null) {
+                Vec3 look = this.getLookAngle();
+                this.setDeltaMovement(look.x * 0.65D, 1.05D, look.z * 0.65D);
+                this.entityData.set(BREACH_TICKS, 40);
+                this.breachCooldown = 340 + this.random.nextInt(280);
+                this.playSound(SoundEvents.DOLPHIN_SPLASH, 1.5F, 0.65F);
+                ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.8, this.getZ(), 45, 2.0, 0.5, 2.0, 0.25);
+            }
+        }
+    }
+
+    @Nullable
+    @Override
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
+        if (!this.isBaby() && reason == EntitySpawnReason.NATURAL) {
+            this.getPersistentData().putBoolean("NeedsPodSpawn", true);
+        }
+        return super.finalizeSpawn(level, difficulty, reason, spawnData);
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getAmbientSound() {
+        return SoundEvents.DOLPHIN_AMBIENT_WATER;
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.DOLPHIN_HURT;
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getDeathSound() {
+        return SoundEvents.DOLPHIN_DEATH;
+    }
+
+    @Override
+    public float getVoicePitch() {
+        return this.isBaby() ? 0.95F : 0.62F;
+    }
+
+    @Override
+    public float getSoundVolume() {
+        return 1.3F;
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
+        output.putBoolean("IsBabyOrca", this.isBaby());
+        output.putBoolean("IsTamedOrca", this.isTamedOrca());
+        output.putInt("BabyGrowTicks", this.babyGrowTicks);
+        if (this.ownerUUID != null) {
+            output.putString("OwnerUUID", this.ownerUUID.toString());
+        }
+    }
+
+    @Override
+    protected void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        boolean baby = input.getBooleanOr("IsBabyOrca", false);
+        this.entityData.set(IS_BABY, baby);
+        this.entityData.set(IS_TAMED, input.getBooleanOr("IsTamedOrca", false));
+        this.babyGrowTicks = input.getIntOr("BabyGrowTicks", 0);
+        String uuidStr = input.getStringOr("OwnerUUID", "");
+        if (!uuidStr.isEmpty()) {
+            try {
+                this.ownerUUID = UUID.fromString(uuidStr);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+    }
+}
