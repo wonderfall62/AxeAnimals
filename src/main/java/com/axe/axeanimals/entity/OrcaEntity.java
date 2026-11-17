@@ -35,6 +35,7 @@ import net.minecraft.world.entity.animal.squid.Squid;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.zombie.Drowned;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.boat.Boat;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -51,10 +52,12 @@ public class OrcaEntity extends WaterAnimal {
     private static final EntityDataAccessor<Boolean> IS_BABY = SynchedEntityData.defineId(OrcaEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> BREACH_TICKS = SynchedEntityData.defineId(OrcaEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> IS_TAMED = SynchedEntityData.defineId(OrcaEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> FIN_CRUISE_TICKS = SynchedEntityData.defineId(OrcaEntity.class, EntityDataSerializers.INT);
 
     @Nullable
     private UUID ownerUUID;
     private int breachCooldown = 700;
+    private int finCruiseCooldown = 400;
     private int breedCooldown = 0;
     private int loveTicks = 0;
     private int babyGrowTicks = 0;
@@ -88,6 +91,7 @@ public class OrcaEntity extends WaterAnimal {
         builder.define(IS_BABY, false);
         builder.define(BREACH_TICKS, 0);
         builder.define(IS_TAMED, false);
+        builder.define(FIN_CRUISE_TICKS, 0);
     }
 
     @Override
@@ -97,6 +101,15 @@ public class OrcaEntity extends WaterAnimal {
 
     public boolean isTamedOrca() {
         return this.entityData.get(IS_TAMED);
+    }
+
+    public boolean isFinCruisingNow() {
+        return this.entityData.get(FIN_CRUISE_TICKS) != 0;
+    }
+
+    public void startFinCruise(int ticks) {
+        this.entityData.set(FIN_CRUISE_TICKS, ticks);
+        this.finCruiseCooldown = 900 + this.random.nextInt(500);
     }
 
     public void setTamedOrca(boolean tamed, @Nullable Player owner) {
@@ -168,7 +181,6 @@ public class OrcaEntity extends WaterAnimal {
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // 1. Приручение дикой косатки Раковиной наутилуса
         if (!this.isTamedOrca() && stack.is(Items.NAUTILUS_SHELL)) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -184,7 +196,6 @@ public class OrcaEntity extends WaterAnimal {
             return InteractionResult.SUCCESS;
         }
 
-        // 2. Размножение и лечение прирученной косатки Раковиной наутилуса (покормите двух косаток рядом!)
         if (this.isTamedOrca() && !this.isBaby() && stack.is(Items.NAUTILUS_SHELL) && this.breedCooldown == 0 && this.loveTicks == 0) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -196,7 +207,6 @@ public class OrcaEntity extends WaterAnimal {
             return InteractionResult.SUCCESS;
         }
 
-        // Лечение лососем или треской
         if (this.isTamedOrca() && (stack.is(Items.SALMON) || stack.is(Items.COD)) && Float.compare(this.getHealth(), this.getMaxHealth()) == -1) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -219,7 +229,6 @@ public class OrcaEntity extends WaterAnimal {
                 if (this.babyGrowTicks == 0) this.setBabyOrca(false);
             }
 
-            // Спаривание двух влюблённых косаток
             if (this.loveTicks != 0) {
                 this.loveTicks--;
                 if (this.tickCount % 10 == 0) {
@@ -249,13 +258,39 @@ public class OrcaEntity extends WaterAnimal {
                 }
             }
 
-            // Ускорение косатки в воде (чтобы она стремительно плавала и догоняла добычу)
-            if (this.isInWater() && this.entityData.get(BREACH_TICKS) == 0) {
-                Vec3 m = this.getDeltaMovement();
-                double hSpeedSq = m.x * m.x + m.z * m.z;
-                if (Double.compare(hSpeedSq, 0.002D) == 1 && Double.compare(hSpeedSq, 0.16D) == -1) {
-                    double boost = (this.getTarget() != null) ? 1.12D : 1.06D;
-                    this.setDeltaMovement(m.x * boost, m.y, m.z * boost);
+            // Синхронное патрулирование стаи у самой поверхности (плавники над водой, как в фильмах!)
+            int fcTicks = this.entityData.get(FIN_CRUISE_TICKS);
+            if (fcTicks != 0) {
+                this.entityData.set(FIN_CRUISE_TICKS, fcTicks - 1);
+                if (this.isInWater()) {
+                    boolean airAbove = !this.level().getFluidState(this.blockPosition().above()).is(FluidTags.WATER);
+                    Vec3 look = this.getLookAngle();
+                    double vy = airAbove ? -0.02D : 0.14D;
+                    this.setDeltaMovement(look.x * 0.42D, vy, look.z * 0.42D);
+                    this.setYRot(this.getYRot() + 1.1F);
+                    if (this.tickCount % 6 == 0) {
+                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.7, this.getZ(), 4, 0.4, 0.1, 0.4, 0.05);
+                    }
+                }
+            } else {
+                if (this.finCruiseCooldown != 0) {
+                    this.finCruiseCooldown--;
+                } else if (this.isInWater() && this.entityData.get(BREACH_TICKS) == 0 && this.random.nextInt(120) == 0) {
+                    int dur = 240;
+                    this.startFinCruise(dur);
+                    List<OrcaEntity> pod = this.level().getEntitiesOfClass(OrcaEntity.class, this.getBoundingBox().inflate(36.0D), o -> o != this);
+                    for (OrcaEntity mate : pod) {
+                        mate.startFinCruise(dur);
+                    }
+                }
+
+                if (this.isInWater() && this.entityData.get(BREACH_TICKS) == 0) {
+                    Vec3 m = this.getDeltaMovement();
+                    double hSpeedSq = m.x * m.x + m.z * m.z;
+                    if (Double.compare(hSpeedSq, 0.002D) == 1 && Double.compare(hSpeedSq, 0.16D) == -1) {
+                        double boost = (this.getTarget() != null) ? 1.12D : 1.06D;
+                        this.setDeltaMovement(m.x * boost, m.y, m.z * boost);
+                    }
                 }
             }
 
@@ -264,17 +299,19 @@ public class OrcaEntity extends WaterAnimal {
                 this.entityData.set(BREACH_TICKS, bTicks - 1);
             }
 
+            // Прирученная косатка плывёт за хозяином И в воде, И когда хозяин на лодке!
             if (this.isTamedOrca()) {
                 Player owner = this.getOwnerPlayer();
-                if (owner != null && owner.isInWater() && this.getTarget() == null && this.loveTicks == 0 && this.tickCount % 15 == 0) {
+                boolean ownerAquatic = owner != null && (owner.isInWater() || owner.getVehicle() instanceof Boat);
+                if (ownerAquatic && this.getTarget() == null && this.loveTicks == 0 && this.tickCount % 12 == 0) {
                     double distSq = this.distanceToSqr(owner);
-                    if (Double.compare(distSq, 64.0D) == 1 && Double.compare(distSq, 1600.0D) == -1) {
-                        this.getNavigation().moveTo(owner, 1.50D);
+                    if (Double.compare(distSq, 64.0D) == 1 && Double.compare(distSq, 2500.0D) == -1) {
+                        this.getNavigation().moveTo(owner.getX(), owner.getY() - 0.8D, owner.getZ(), 1.65D);
                     }
-                } else if (owner != null && !owner.isInWater() && this.getTarget() != null && !this.getTarget().isInWater()) {
+                } else if (!ownerAquatic && this.getTarget() != null && !this.getTarget().isInWater()) {
                     this.setTarget(null);
                 }
-            } else if (this.tickCount % 25 == 0) {
+            } else if (this.tickCount % 25 == 0 && fcTicks == 0) {
                 List<OrcaEntity> pod = this.level().getEntitiesOfClass(OrcaEntity.class, this.getBoundingBox().inflate(32.0D), o -> o != this && !o.isBaby() && !o.isTamedOrca());
                 if (!pod.isEmpty()) {
                     OrcaEntity leader = pod.getFirst();
@@ -284,12 +321,11 @@ public class OrcaEntity extends WaterAnimal {
                 }
             }
 
-            // Естественный прыжок с поверхности воды с честной гравитацией (без полётов в небе!)
             boolean nearSurface = !this.level().getFluidState(this.blockPosition().above(2)).is(FluidTags.WATER);
             boolean deepEnough = this.level().getFluidState(this.blockPosition().below(3)).is(FluidTags.WATER);
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-            } else if (this.isInWater() && nearSurface && deepEnough && this.getTarget() == null) {
+            } else if (this.isInWater() && nearSurface && deepEnough && this.getTarget() == null && fcTicks == 0) {
                 Vec3 look = this.getLookAngle();
                 this.setDeltaMovement(look.x * 1.15D, 0.85D, look.z * 1.15D);
                 this.entityData.set(BREACH_TICKS, 36);
