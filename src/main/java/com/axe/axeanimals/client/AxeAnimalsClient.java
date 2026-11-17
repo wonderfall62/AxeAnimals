@@ -78,19 +78,19 @@ public class AxeAnimalsClient {
                 ModelPart fr = lr.getChild("FootRight");
 
                 if (state.isStanding && !state.isInWater) {
-                    body.y = 12.2F;
-                    body.xRot = -1.42F;
-                    chest.xRot = -0.05F;
-                    hips.xRot = 1.15F;
+                    body.y = 13.4F;
+                    body.xRot = -1.32F;
+                    chest.xRot = -0.10F;
+                    hips.xRot = 0.35F;
                     neck.xRot = -0.15F;
-                    head.xRot = 1.35F;
+                    head.xRot = 1.25F;
                     head.yRot = Mth.sin(age * 0.14F) * 0.35F;
-                    abl.xRot = 1.35F;
-                    abr.xRot = 1.35F;
-                    tl.xRot = 0.25F;
-                    tr.xRot = 0.25F;
-                    tail1.xRot = 1.25F;
-                    tail2.xRot = 0.15F;
+                    abl.xRot = 1.30F;
+                    abr.xRot = 1.30F;
+                    tl.xRot = 0.85F;
+                    tr.xRot = 0.85F;
+                    tail1.xRot = 1.05F;
+                    tail2.xRot = 0.25F;
                 } else if (Float.compare(speed, 0.08F) == -1 && !state.isInWater) {
                     float sw = age * 0.65F;
                     body.y = 18.1F;
@@ -204,6 +204,9 @@ public class AxeAnimalsClient {
                 ModelPart hips = body.getChild("Hips");
                 ModelPart neck = chest.getChild("Neck");
                 ModelPart head = neck.getChild("Head");
+                if (chest.hasChild("Mane")) chest.getChild("Mane").visible = !state.isBaby;
+                if (neck.hasChild("NeckMane")) neck.getChild("NeckMane").visible = !state.isBaby;
+                if (head.hasChild("HeadMane")) head.getChild("HeadMane").visible = !state.isBaby;
                 ModelPart mouth = head.getChild("Snout").getChild("Mouth");
                 ModelPart tail1 = hips.getChild("Tail1");
                 ModelPart tail2 = tail1.getChild("Tail2");
@@ -364,6 +367,10 @@ public class AxeAnimalsClient {
                 super.extractRenderState(e, s, pt);
                 s.isStanding = e.standUprightState.isStarted();
                 s.isInWater = e.isInWater();
+                s.isBaby = e.isBaby();
+            }
+            @Override protected void scale(AnimalRenderState s, PoseStack poseStack) {
+                if (s.isBaby) poseStack.scale(0.52F, 0.52F, 0.52F);
             }
         });
 
@@ -395,6 +402,10 @@ public class AxeAnimalsClient {
                 super.extractRenderState(e, s, pt);
                 s.isRoaring = e.isRoaringNow();
                 s.isInWater = e.isInWater();
+                s.isBaby = e.isBaby();
+            }
+            @Override protected void scale(AnimalRenderState s, PoseStack poseStack) {
+                if (s.isBaby) poseStack.scale(0.50F, 0.50F, 0.50F);
             }
         });
 
@@ -405,6 +416,10 @@ public class AxeAnimalsClient {
                 super.extractRenderState(e, s, pt);
                 s.isStretching = e.isStretchingNow();
                 s.isInWater = e.isInWater();
+                s.isBaby = e.isBaby();
+            }
+            @Override protected void scale(AnimalRenderState s, PoseStack poseStack) {
+                if (s.isBaby) poseStack.scale(0.50F, 0.50F, 0.50F);
             }
         });
 
