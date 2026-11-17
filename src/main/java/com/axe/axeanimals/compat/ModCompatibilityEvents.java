@@ -31,34 +31,12 @@ import java.util.List;
 
 public class ModCompatibilityEvents {
 
-    @SubscribeEvent
+      @SubscribeEvent
     public static void onMobFinalizeSpawn(FinalizeSpawnEvent event) {
         Mob mob = event.getEntity();
         Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
         String ns = id.getNamespace();
         String path = id.getPath();
-
-        if (event.getSpawnType() == EntitySpawnReason.NATURAL) {
-            if (mob instanceof Dolphin) {
-                int count = mob.level().getEntitiesOfClass(Dolphin.class, mob.getBoundingBox().inflate(48.0D)).size();
-                if (Float.compare(count, 5.5F) == 1) {
-                    event.setSpawnCancelled(true);
-                    return;
-                }
-            } else if (mob instanceof WhaleEntity) {
-                int count = mob.level().getEntitiesOfClass(WhaleEntity.class, mob.getBoundingBox().inflate(64.0D)).size();
-                if (Float.compare(count, 1.5F) == 1) {
-                    event.setSpawnCancelled(true);
-                    return;
-                }
-            } else if (mob instanceof OrcaEntity) {
-                int count = mob.level().getEntitiesOfClass(OrcaEntity.class, mob.getBoundingBox().inflate(56.0D)).size();
-                if (Float.compare(count, 3.5F) == 1) {
-                    event.setSpawnCancelled(true);
-                    return;
-                }
-            }
-        }
 
         if (ns.equals("cubeanimals")) {
             if (path.contains("fennec") || path.contains("rattlesnake") || path.contains("snake")) {
@@ -76,9 +54,9 @@ public class ModCompatibilityEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         for (ServerLevel level : event.getServer().getAllLevels()) {
-            if (level.getGameTime() % 240 != 0) continue;
+            if (level.players().isEmpty() || level.getGameTime() % 240 != 0) continue;
             for (ServerPlayer player : level.players()) {
-                if (player.isSpectator()) continue;
+                if (player.isSpectator() || player.tickCount < 100) continue;
                 BlockPos pPos = player.blockPosition();
                 if (!level.getBiome(pPos).is(BiomeTags.IS_OCEAN)) continue;
 
@@ -101,7 +79,7 @@ public class ModCompatibilityEvents {
                     int sz = (int) (player.getZ() + Math.sin(angle) * dist);
                     int sy = Math.max(level.getMinY() + 5, (int) player.getY() - 4 + level.getRandom().nextInt(8));
                     BlockPos spawnPos = new BlockPos(sx, sy, sz);
-                    if (level.getFluidState(spawnPos).is(FluidTags.WATER) && level.getFluidState(spawnPos.below(2)).is(FluidTags.WATER)) {
+                    if (level.isLoaded(spawnPos) && level.getFluidState(spawnPos).is(FluidTags.WATER) && level.getFluidState(spawnPos.below(2)).is(FluidTags.WATER)) {
                         EntityType<?> chosen = sharkTypes.get(level.getRandom().nextInt(sharkTypes.size()));
                         Entity shark = chosen.create(level, EntitySpawnReason.NATURAL);
                         if (shark != null) {
@@ -114,6 +92,7 @@ public class ModCompatibilityEvents {
             }
         }
     }
+
     @SubscribeEvent
     public static void onDolphinInteract(PlayerInteractEvent.EntityInteract event) {
         if (!(event.getTarget() instanceof Dolphin dolphin) || dolphin.isBaby()) return;
