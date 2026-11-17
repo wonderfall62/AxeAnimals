@@ -230,51 +230,51 @@ public class AxeAnimalsClient {
                     float sp = state.sleepProgress * state.sleepProgress * (3.0F - 2.0F * state.sleepProgress);
                     float breath = Mth.sin(age * 0.08F) * 0.02F * sp;
 
-                    // Опускаем корпус прямо на землю (y = 19.2F) и сворачиваем дугой
-                    chest.y = Mth.lerp(sp, 8.0F, 19.2F);
-                    chest.xRot = Mth.lerp(sp, -0.087F, 0.04F) + breath;
-                    chest.yRot = Mth.lerp(sp, 0.0F, -0.22F);
-                    chest.zRot = Mth.lerp(sp, 0.0F, 0.18F);
-                    backPoint.xRot = Mth.lerp(sp, 0.0F, 0.06F);
-                    backPoint.yRot = Mth.lerp(sp, 0.0F, 0.34F);
-                    hips.xRot = Mth.lerp(sp, -0.349F, -0.25F);
-                    hips.yRot = Mth.lerp(sp, 0.0F, 0.38F);
+                    // Корпус лежит на правом боку прямо на земле
+                    chest.y = Mth.lerp(sp, 8.0F, 17.4F);
+                    chest.xRot = Mth.lerp(sp, -0.087F, 0.02F) + breath;
+                    chest.yRot = Mth.lerp(sp, 0.0F, -0.18F);
+                    chest.zRot = Mth.lerp(sp, 0.0F, 0.45F);
+                    backPoint.xRot = Mth.lerp(sp, 0.0F, 0.05F);
+                    backPoint.yRot = Mth.lerp(sp, 0.0F, 0.28F);
+                    hips.xRot = Mth.lerp(sp, -0.349F, -0.22F);
+                    hips.yRot = Mth.lerp(sp, 0.0F, 0.32F);
 
-                    // Голова уложена вбок на траву рядом с плечом
-                    neck.xRot = Mth.lerp(sp, -0.02F, 0.12F);
-                    neck.yRot = Mth.lerp(sp, 0.0F, 0.65F);
-                    head.xRot = Mth.lerp(sp, 0.12F, 0.16F);
-                    head.yRot = Mth.lerp(sp, 0.0F, 0.55F);
+                    // Голова лежит на траве вбок
+                    neck.xRot = Mth.lerp(sp, -0.02F, 0.14F);
+                    neck.yRot = Mth.lerp(sp, 0.0F, 0.55F);
+                    head.xRot = Mth.lerp(sp, 0.12F, 0.14F);
+                    head.yRot = Mth.lerp(sp, 0.0F, 0.48F);
                     head.zRot = Mth.lerp(sp, 0.0F, -0.25F);
 
-                    // Передние лапы выведены наружу вдоль боков груди (не заходят в туловище)
-                    abl.xRot = Mth.lerp(sp, 0.15F, 0.32F);
-                    abl.zRot = Mth.lerp(sp, 0.0F, -0.30F);
-                    al.xRot = Mth.lerp(sp, -0.10F, -1.55F);
-                    fal.xRot = Mth.lerp(sp, 0.10F, 1.15F);
-                    abr.xRot = Mth.lerp(sp, 0.15F, 0.32F);
-                    abr.zRot = Mth.lerp(sp, 0.0F, 0.30F);
-                    ar.xRot = Mth.lerp(sp, -0.10F, -1.55F);
-                    far.xRot = Mth.lerp(sp, 0.10F, 1.15F);
+                    // Передние лапы вытянуты вбок по поверхности земли (не уходят под траву!)
+                    abl.xRot = Mth.lerp(sp, 0.15F, -0.35F);
+                    abl.zRot = Mth.lerp(sp, 0.0F, -0.95F);
+                    al.xRot = Mth.lerp(sp, -0.10F, 0.25F);
+                    fal.xRot = Mth.lerp(sp, 0.10F, 0.10F);
+                    abr.xRot = Mth.lerp(sp, 0.15F, -0.45F);
+                    abr.zRot = Mth.lerp(sp, 0.0F, -0.65F);
+                    ar.xRot = Mth.lerp(sp, -0.10F, 0.35F);
+                    far.xRot = Mth.lerp(sp, 0.10F, 0.10F);
 
-                    // Задние лапы аккуратно сложены снаружи у бедра
-                    tl.xRot = Mth.lerp(sp, 0.0F, -1.25F);
-                    tl.zRot = Mth.lerp(sp, 0.0F, -0.34F);
-                    ull.xRot = Mth.lerp(sp, 0.70F, 2.25F);
-                    lll.xRot = Mth.lerp(sp, -0.80F, -0.95F);
-                    tr.xRot = Mth.lerp(sp, 0.0F, -1.25F);
-                    tr.zRot = Mth.lerp(sp, 0.0F, 0.34F);
-                    ulr.xRot = Mth.lerp(sp, 0.70F, 2.25F);
-                    llr.xRot = Mth.lerp(sp, -0.80F, -0.95F);
+                    // Задние лапы тоже вытянуты вбок по траве
+                    tl.xRot = Mth.lerp(sp, 0.0F, -0.25F);
+                    tl.zRot = Mth.lerp(sp, 0.0F, -0.95F);
+                    ull.xRot = Mth.lerp(sp, 0.70F, 0.45F);
+                    lll.xRot = Mth.lerp(sp, -0.80F, -0.20F);
+                    tr.xRot = Mth.lerp(sp, 0.0F, -0.35F);
+                    tr.zRot = Mth.lerp(sp, 0.0F, -0.65F);
+                    ulr.xRot = Mth.lerp(sp, 0.70F, 0.55F);
+                    llr.xRot = Mth.lerp(sp, -0.80F, -0.25F);
 
-                    // Хвост оборачивается дугой вокруг тела по земле
-                    tail1.xRot = Mth.lerp(sp, 0.56F, 0.82F);
-                    tail1.yRot = Mth.lerp(sp, 0.0F, 0.62F);
-                    tail1.zRot = Mth.lerp(sp, 0.0F, 0.12F);
+                    // Хвост спокойно лежит на траве за спиной
+                    tail1.xRot = Mth.lerp(sp, 0.56F, 0.78F);
+                    tail1.yRot = Mth.lerp(sp, 0.0F, 0.55F);
+                    tail1.zRot = Mth.lerp(sp, 0.0F, 0.10F);
                     tail2.xRot = Mth.lerp(sp, 0.21F, 0.18F);
-                    tail2.yRot = Mth.lerp(sp, 0.0F, 0.72F);
-                    tail2.zRot = Mth.lerp(sp, 0.0F, 0.10F);
-
+                    tail2.yRot = Mth.lerp(sp, 0.0F, 0.65F);
+                    tail2.zRot = Mth.lerp(sp, 0.0F, 0.08F);
+                    
                 } else if (state.isSitting && !state.isInWater) {
                     chest.y = 10.6F;
                     chest.xRot = -0.36F;
