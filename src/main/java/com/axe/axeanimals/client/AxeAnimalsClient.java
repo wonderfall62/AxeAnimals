@@ -32,7 +32,7 @@ public class AxeAnimalsClient {
         public float breachProgress = 0.0F;
         public float feedingProgress = 0.0F;
         public boolean isRoaring = false;
-        public boolean isSleeping = false;
+        public float sleepProgress = 0.0F;
         public boolean isSitting = false;
         public boolean isFinCruising = false;
         public boolean isBaby = false;
@@ -154,10 +154,13 @@ public class AxeAnimalsClient {
                 ModelPart body = this.rootPart.getChild("body");
                 float swim = age * 0.065F + t * 0.22F;
                 float bp = state.breachProgress;
-                float blend = Mth.sin(bp * (float) Math.PI);
-                float verticalPitch = -1.12F * Mth.sin(bp * (float) Math.PI * 2.0F);
+                float smoothBp = bp * bp * (3.0F - 2.0F * bp);
+                float blend = Mth.sin(smoothBp * (float) Math.PI);
+                float verticalPitch = (Float.compare(smoothBp, 0.5F) == -1)
+                        ? (-1.08F * Mth.sin(smoothBp * (float) Math.PI))
+                        : (1.26F * Mth.sin((smoothBp - 0.5F) * (float) Math.PI));
                 body.xRot = Mth.lerp(blend, Mth.sin(swim) * 0.045F, verticalPitch);
-                body.y += Mth.sin(swim) * 0.75F * (1.0F - blend * 0.85F);
+                body.y += Mth.sin(swim) * 0.75F * (1.0F - blend * 0.90F);
                 if (body.hasChild("head") && body.getChild("head").hasChild("jaw")) {
                     body.getChild("head").getChild("jaw").xRot = (state.feedingProgress * 0.44F) + 0.02F + Mth.sin(swim * 0.5F) * 0.015F;
                 }
@@ -229,24 +232,26 @@ public class AxeAnimalsClient {
                 ModelPart llr = ulr.getChild("LowerLegRight");
                 ModelPart fr = llr.getChild("FootRight");
 
-                if (state.isSleeping && !state.isInWater) {
-                    chest.y = 14.8F;
-                    chest.xRot = 0.05F;
-                    backPoint.xRot = -0.05F;
-                    hips.xRot = -0.35F;
-                    neck.xRot = 0.42F;
-                    head.xRot = 0.25F;
-                    head.zRot = 0.24F;
-                    abl.xRot = -1.25F;
-                    al.xRot = 1.15F;
-                    abr.xRot = -1.25F;
-                    ar.xRot = 1.15F;
-                    tl.xRot = -1.15F;
-                    ull.xRot = 1.35F;
-                    tr.xRot = -1.15F;
-                    ulr.xRot = 1.35F;
-                    tail1.xRot = 0.35F;
-                    tail2.xRot = 0.25F;
+                if (Float.compare(state.sleepProgress, 0.01F) == 1 && !state.isInWater) {
+                    float sp = state.sleepProgress * state.sleepProgress * (3.0F - 2.0F * state.sleepProgress);
+                    chest.y = Mth.lerp(sp, 8.0F, 13.6F);
+                    chest.xRot = Mth.lerp(sp, -0.087F, 0.04F);
+                    chest.zRot = Mth.lerp(sp, 0.0F, 0.24F);
+                    backPoint.xRot = Mth.lerp(sp, 0.0F, -0.04F);
+                    hips.xRot = Mth.lerp(sp, -0.349F, -0.30F);
+                    neck.xRot = Mth.lerp(sp, -0.02F, 0.20F);
+                    head.xRot = Mth.lerp(sp, 0.12F, 0.14F);
+                    head.zRot = Mth.lerp(sp, 0.0F, -0.32F);
+                    abl.xRot = Mth.lerp(sp, 0.15F, -1.10F);
+                    al.xRot = Mth.lerp(sp, -0.10F, 0.25F);
+                    abr.xRot = Mth.lerp(sp, 0.15F, -1.10F);
+                    ar.xRot = Mth.lerp(sp, -0.10F, 0.25F);
+                    tl.xRot = Mth.lerp(sp, 0.0F, -0.60F);
+                    ull.xRot = Mth.lerp(sp, 0.70F, 0.45F);
+                    tr.xRot = Mth.lerp(sp, 0.0F, -0.60F);
+                    ulr.xRot = Mth.lerp(sp, 0.70F, 0.45F);
+                    tail1.xRot = Mth.lerp(sp, 0.56F, 0.25F);
+                    tail2.xRot = Mth.lerp(sp, 0.21F, 0.15F);
                 } else if (state.isSitting && !state.isInWater) {
                     chest.y = 10.6F;
                     chest.xRot = -0.36F;
@@ -357,14 +362,14 @@ public class AxeAnimalsClient {
                 float arcPitch = -0.62F * Mth.sin(bp * (float) Math.PI * 2.0F);
 
                 if (state.isFinCruising && bp == 0.0F) {
-                    body.y = 4.2F + Mth.sin(age * 0.22F) * 0.45F;
-                    body.xRot = 0.06F + Mth.sin(age * 0.22F) * 0.06F;
-                    body.yRot = 0.14F;
-                    chest.xRot = 0.18F;
-                    tail1.xRot = -0.18F;
-                    tail2.xRot = -0.15F;
-                    tail3.xRot = -0.12F;
-                    tail4.xRot = -0.10F;
+                    float wave = Mth.sin(age * 0.13F);
+                    body.y = 6.2F - wave * 2.4F;
+                    body.xRot = -0.16F * Mth.cos(age * 0.13F);
+                    chest.xRot = 0.14F + Mth.cos(6.0F + swimPos * 0.3F + (float) Math.PI) * -0.25F * swimAmp;
+                    tail1.xRot = -0.0873F + Mth.cos(1.0F + swimPos * 0.3F + (float) Math.PI) * -0.55F * swimAmp;
+                    tail2.xRot = -0.0524F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * -0.40F * swimAmp;
+                    tail3.xRot = -0.1396F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * -0.65F * swimAmp;
+                    tail4.xRot = -0.0873F + Mth.cos(5.0F + swimPos * 0.3F + (float) Math.PI) * -0.95F * swimAmp;
                 } else {
                     body.xRot = Mth.lerp(blend, Mth.cos(swimPos * 0.3F + (float) Math.PI) * 0.28F * swimAmp, arcPitch);
                     body.y = 10.5F + Mth.sin(swimPos * 0.3F) * 0.85F * (1.0F - blend * 0.7F);
@@ -446,7 +451,7 @@ public class AxeAnimalsClient {
             @Override public AnimalRenderState createRenderState() { return new AnimalRenderState(); }
             @Override public void extractRenderState(LionessEntity e, AnimalRenderState s, float pt) {
                 super.extractRenderState(e, s, pt);
-                s.isSleeping = e.isSleepingNow();
+                s.sleepProgress = e.getSleepProgress();
                 s.isSitting = e.isInSittingPose();
                 s.isInWater = e.isInWater();
                 s.isBaby = e.isBaby();
