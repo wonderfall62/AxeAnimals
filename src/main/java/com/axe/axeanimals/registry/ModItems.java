@@ -41,6 +41,10 @@ public class ModItems {
             () -> new SpawnEggItem(new Item.Properties().spawnEgg(ModEntities.LIONESS.get())
                     .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "lioness_spawn_egg")))));
 
+    public static final DeferredHolder<Item, SpawnEggItem> ORCA_SPAWN_EGG = ITEMS.register("orca_spawn_egg",
+            () -> new SpawnEggItem(new Item.Properties().spawnEgg(ModEntities.ORCA.get())
+                    .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "orca_spawn_egg")))));
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> AXE_ANIMALS_TAB = CREATIVE_TABS.register("axeanimals_tab",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.axeanimals"))
@@ -52,5 +56,6 @@ public class ModItems {
                         output.accept(STINGRAY_SPAWN_EGG.get());
                         output.accept(LION_SPAWN_EGG.get());
                         output.accept(LIONESS_SPAWN_EGG.get());
+                        output.accept(ORCA_SPAWN_EGG.get());
                     }).build());
 }
