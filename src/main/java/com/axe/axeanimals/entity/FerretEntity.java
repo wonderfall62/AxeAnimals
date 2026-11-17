@@ -2,8 +2,9 @@ package com.axe.axeanimals.entity;
 
 import com.axe.axeanimals.registry.ModEntities;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.ItemTags;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -17,6 +18,7 @@ import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,10 +36,12 @@ public class FerretEntity extends Animal {
                 .add(Attributes.MOVEMENT_SPEED, 0.34D)
                 .add(Attributes.ATTACK_DAMAGE, 3.0D);
     }
-  @Override
+
+    @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
         return false;
     }
+
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
@@ -73,29 +77,37 @@ public class FerretEntity extends Animal {
 
     @Override
     public boolean isFood(ItemStack stack) {
-        return stack.is(ItemTags.MEAT) && !stack.has(net.minecraft.core.component.DataComponents.FOOD)
-                || stack.is(ItemTags.MEAT);
+        return stack.is(Items.BEEF)
+                || stack.is(Items.PORKCHOP)
+                || stack.is(Items.MUTTON)
+                || stack.is(Items.CHICKEN)
+                || stack.is(Items.RABBIT);
     }
 
     @Nullable
     @Override
     public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
         this.playSound(SoundEvents.FOX_AMBIENT, 0.8F, 1.3F);
-        return ModEntities.FERRET.get().create(level, EntitySpawnReason.BREEDING);
-    }
- @Override
-    protected net.minecraft.sounds.SoundEvent getAmbientSound() {
-        return net.minecraft.sounds.SoundEvents.FOX_AMBIENT;
-    }
-
-    @Override
-    protected net.minecraft.sounds.SoundEvent getHurtSound(net.minecraft.world.damagesource.DamageSource source) {
-        return net.minecraft.sounds.SoundEvents.FOX_HURT;
+        FerretEntity baby = ModEntities.FERRET.get().create(level, EntitySpawnReason.BREEDING);
+        if (baby != null) {
+            baby.setBaby(true);
+        }
+        return baby;
     }
 
     @Override
-    protected net.minecraft.sounds.SoundEvent getDeathSound() {
-        return net.minecraft.sounds.SoundEvents.FOX_DEATH;
+    protected SoundEvent getAmbientSound() {
+        return SoundEvents.FOX_AMBIENT;
+    }
+
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.FOX_HURT;
+    }
+
+    @Override
+    protected SoundEvent getDeathSound() {
+        return SoundEvents.FOX_DEATH;
     }
 
     @Override
