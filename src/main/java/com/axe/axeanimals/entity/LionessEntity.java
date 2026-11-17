@@ -26,9 +26,9 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 public class LionessEntity extends TamableAnimal {
-    private static final EntityDataAccessor<Integer> STRETCH_TICKS = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.INT);
-    public final AnimationState stretchState = new AnimationState();
+    private static final EntityDataAccessor<Boolean> IS_SLEEPING = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.BOOLEAN);
     private int sprintTicks = 0;
+    private int stillTicks = 0;
 
     public LionessEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -49,7 +49,7 @@ public class LionessEntity extends TamableAnimal {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
-        builder.define(STRETCH_TICKS, 0);
+        builder.define(IS_SLEEPING, false);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class LionessEntity extends TamableAnimal {
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.35D, true));
         this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.15D, 10.0F, 2.0F));
-        this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D));
+        this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D, LionEntity.class));
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.95D));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 10.0F));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
@@ -67,18 +67,18 @@ public class LionessEntity extends TamableAnimal {
         this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
         this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
         this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Animal.class, 200, true, false,
-                (target, level) -> !this.isTame() && !this.isBaby()
+                (target, level) -> !this.isTame() && !this.isBaby() && !this.isSleepingNow()
                         && !(target instanceof LionEntity)
                         && !(target instanceof LionessEntity)
                         && !(target instanceof FerretEntity)
                         && !(target instanceof TamableAnimal t && t.isTame())));
     }
-
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        this.entityData.set(IS_SLEEPING, false);
+        this.stillTicks = 0;
 
-        // Приручать можно ТОЛЬКО львят
         if (this.isBaby() && !this.isTame() && this.isFood(stack)) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -93,7 +93,6 @@ public class LionessEntity extends TamableAnimal {
             return InteractionResult.SUCCESS;
         }
 
-        // Кормление взрослых львиц (и диких, и прирученных): лечение или размножение
         if (!this.isBaby() && this.isFood(stack)) {
             if (!this.level().isClientSide()) {
                 if (Float.compare(this.getHealth(), this.getMaxHealth()) == -1) {
@@ -111,7 +110,6 @@ public class LionessEntity extends TamableAnimal {
             return InteractionResult.SUCCESS;
         }
 
-        // Команда «Сидеть / Встать» для прирученной львицы
         if (this.isTame() && this.isOwnedBy(player)) {
             if (!this.level().isClientSide()) {
                 this.setOrderedToSit(!this.isOrderedToSit());
@@ -121,23 +119,28 @@ public class LionessEntity extends TamableAnimal {
 
         return super.mobInteract(player, hand);
     }
+
     @Override
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
-            int st = this.entityData.get(STRETCH_TICKS);
             boolean moving = Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.002D) == 1;
+            boolean isNight = !this.level().isBrightOutside();
 
-            if (st != 0) {
-                if (moving || this.isInWater() || this.isOrderedToSit()) {
-                    this.entityData.set(STRETCH_TICKS, 0);
-                } else {
-                    this.getNavigation().stop();
-                    this.entityData.set(STRETCH_TICKS, st - 1);
+            if (!moving && this.onGround() && !this.isInWater() && this.getTarget() == null && !this.isInLove()) {
+                this.stillTicks++;
+            } else {
+                this.stillTicks = 0;
+            }
+
+            // Ночной сон (включая прирученных, когда они не двигаются)
+            if (isNight && Float.compare(this.stillTicks, 60.0F) == 1 && !moving && !this.isInWater() && this.getTarget() == null) {
+                this.entityData.set(IS_SLEEPING, true);
+                this.getNavigation().stop();
+            } else if (!isNight || moving || this.isInWater() || this.getTarget() != null || this.isInLove()) {
+                if (this.entityData.get(IS_SLEEPING)) {
+                    this.entityData.set(IS_SLEEPING, false);
                 }
-            } else if (!this.isBaby() && !this.isInWater() && this.onGround() && !this.isOrderedToSit()
-                    && !moving && this.sprintTicks == 0 && this.random.nextInt(260) == 0) {
-                this.entityData.set(STRETCH_TICKS, 50);
             }
 
             if (this.sprintTicks != 0) {
@@ -150,16 +153,16 @@ public class LionessEntity extends TamableAnimal {
                 }
             } else {
                 this.setSprinting(this.getTarget() != null);
-                if (!this.isInWater() && this.onGround() && !this.isOrderedToSit()
-                        && this.entityData.get(STRETCH_TICKS) == 0 && this.random.nextInt(1500) == 0) {
+                if (!isNight && !this.isSleepingNow() && !this.isInWater() && this.onGround() && !this.isOrderedToSit()
+                        && this.random.nextInt(1500) == 0) {
                     this.sprintTicks = 75 + this.random.nextInt(35);
                 }
             }
         }
     }
 
-    public boolean isStretchingNow() {
-        return this.entityData.get(STRETCH_TICKS) != 0;
+    public boolean isSleepingNow() {
+        return this.entityData.get(IS_SLEEPING);
     }
 
     @Override
@@ -196,7 +199,7 @@ public class LionessEntity extends TamableAnimal {
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return SoundEvents.OCELOT_AMBIENT;
+        return this.isSleepingNow() ? null : SoundEvents.OCELOT_AMBIENT;
     }
 
     @Override
