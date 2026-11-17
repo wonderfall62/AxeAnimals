@@ -59,14 +59,14 @@ public class OrcaEntity extends WaterAnimal {
 
     public OrcaEntity(EntityType<? extends WaterAnimal> type, Level level) {
         super(type, level);
-        this.moveControl = new SmoothSwimmingMoveControl(this, 65, 8, 0.025F, 0.12F, true);
+        this.moveControl = new SmoothSwimmingMoveControl(this, 75, 10, 0.042F, 0.14F, true);
         this.lookControl = new SmoothSwimmingLookControl(this, 10);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return WaterAnimal.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 60.0D)
-                .add(Attributes.MOVEMENT_SPEED, 1.08D)
+                .add(Attributes.MOVEMENT_SPEED, 1.32D)
                 .add(Attributes.ATTACK_DAMAGE, 8.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.65D);
     }
@@ -131,8 +131,8 @@ public class OrcaEntity extends WaterAnimal {
     }
     @Override
     protected void registerGoals() {
-        this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.40D, true));
-        this.goalSelector.addGoal(2, new RandomSwimmingGoal(this, 1.05D, 25));
+        this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.65D, true));
+        this.goalSelector.addGoal(2, new RandomSwimmingGoal(this, 1.30D, 20));
 
         this.targetSelector.addGoal(1, new HurtByTargetGoal(this) {
             @Override
