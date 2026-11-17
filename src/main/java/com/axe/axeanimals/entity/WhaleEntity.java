@@ -338,15 +338,22 @@ public class WhaleEntity extends WaterAnimal {
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
+            // Сначала 18 тиков разгона носом вверх в воде, затем плавный вылет дугой и вертикальный уход в воду
             if (bTicks != 0) {
                 Vec3 look = this.getLookAngle();
                 Vec3 m = this.getDeltaMovement();
-                if (Float.compare(bTicks, 85.0F) == 1) {
-                    this.setDeltaMovement(look.x * 0.36D, Math.max(m.y, 0.58D), look.z * 0.36D);
-                } else if (Float.compare(bTicks, 55.0F) == 1) {
-                    this.setDeltaMovement(look.x * 0.32D, m.y * 0.88D, look.z * 0.32D);
+                if (Float.compare(bTicks, 92.0F) == 1) {
+                    this.setDeltaMovement(look.x * 0.25D, 0.12D, look.z * 0.25D);
+                } else if (bTicks == 92) {
+                    this.setDeltaMovement(look.x * 0.36D, 0.88D, look.z * 0.36D);
+                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.2F, 0.45F);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 75, 3.2, 0.8, 3.2, 0.30);
+                } else if (Float.compare(bTicks, 68.0F) == 1) {
+                    this.setDeltaMovement(look.x * 0.34D, Math.max(m.y, 0.42D), look.z * 0.34D);
+                } else if (Float.compare(bTicks, 40.0F) == 1) {
+                    this.setDeltaMovement(look.x * 0.28D, m.y * 0.88D, look.z * 0.28D);
                 } else {
-                    this.setDeltaMovement(look.x * 0.24D, Math.max(m.y, -0.35D), look.z * 0.24D);
+                    this.setDeltaMovement(look.x * 0.22D, Math.max(m.y, -0.32D), look.z * 0.22D);
                 }
             }
 
@@ -356,15 +363,11 @@ public class WhaleEntity extends WaterAnimal {
                 if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 850.0F) == 1) {
                     this.breachCooldown = 700 + this.random.nextInt(250);
                 }
-            } else if (this.isInWater() && !shallow && nearSurface) {
+            } else if (this.isInWater() && !shallow && nearSurface && bTicks == 0) {
                 var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(5.2D));
                 if (tooCloseBoats.isEmpty()) {
-                    Vec3 look = this.getLookAngle();
-                    this.setDeltaMovement(look.x * 0.38D, 1.12D, look.z * 0.38D);
                     this.entityData.set(BREACH_TICKS, 110);
                     this.breachCooldown = (this.escortTicks != 0) ? (850 + this.random.nextInt(300)) : (1800 + this.random.nextInt(1400));
-                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.2F, 0.45F);
-                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 75, 3.2, 0.8, 3.2, 0.30);
                 }
             }
         }
