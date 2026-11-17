@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 public class LionessEntity extends TamableAnimal {
     private static final EntityDataAccessor<Boolean> IS_SLEEPING = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.BOOLEAN);
     private int sprintTicks = 0;
-    private int stillTicks = 0;
+    private int sleepTransition = 0;
 
     public LionessEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -57,11 +57,20 @@ public class LionessEntity extends TamableAnimal {
         this.goalSelector.addGoal(1, new FloatGoal(this));
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.35D, true));
-        this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.15D, 10.0F, 2.0F));
+        this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.15D, 10.0F, 2.0F) {
+            @Override public boolean canUse() { return !LionessEntity.this.isSleepingNow() && super.canUse(); }
+        });
         this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D, LionEntity.class));
-        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.95D));
-        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 10.0F));
-        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.95D) {
+            @Override public boolean canUse() { return !LionessEntity.this.isSleepingNow() && super.canUse(); }
+            @Override public boolean canContinueToUse() { return !LionessEntity.this.isSleepingNow() && super.canContinueToUse(); }
+        });
+        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 10.0F) {
+            @Override public boolean canUse() { return !LionessEntity.this.isSleepingNow() && super.canUse(); }
+        });
+        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this) {
+            @Override public boolean canUse() { return !LionessEntity.this.isSleepingNow() && super.canUse(); }
+        });
 
         this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
@@ -77,7 +86,6 @@ public class LionessEntity extends TamableAnimal {
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         this.entityData.set(IS_SLEEPING, false);
-        this.stillTicks = 0;
 
         if (this.isBaby() && !this.isTame() && this.isFood(stack)) {
             if (!this.level().isClientSide()) {
@@ -123,46 +131,54 @@ public class LionessEntity extends TamableAnimal {
     @Override
     public void tick() {
         super.tick();
-        if (!this.level().isClientSide()) {
-            boolean moving = Double.compare(this.getDeltaMovement().horizontalDistanceSqr(), 0.002D) == 1;
-            boolean isNight = !this.level().isBrightOutside();
-
-            if (!moving && this.onGround() && !this.isInWater() && this.getTarget() == null && !this.isInLove()) {
-                this.stillTicks++;
-            } else {
-                this.stillTicks = 0;
+        if (this.level().isClientSide()) {
+            if (this.isSleepingNow()) {
+                if (this.sleepTransition != 30) this.sleepTransition++;
+            } else if (this.sleepTransition != 0) {
+                this.sleepTransition--;
             }
+            return;
+        }
 
-            // Ночной сон (включая прирученных, когда они не двигаются)
-            if (isNight && Float.compare(this.stillTicks, 60.0F) == 1 && !moving && !this.isInWater() && this.getTarget() == null) {
+        boolean isNight = !this.level().isBrightOutside();
+        boolean canSleep = isNight && this.onGround() && !this.isInWater() && this.getTarget() == null && !this.isInLove();
+
+        if (canSleep) {
+            if (!this.isSleepingNow() && this.tickCount % 40 == 0 && this.random.nextInt(3) == 0) {
                 this.entityData.set(IS_SLEEPING, true);
                 this.getNavigation().stop();
-            } else if (!isNight || moving || this.isInWater() || this.getTarget() != null || this.isInLove()) {
-                if (this.entityData.get(IS_SLEEPING)) {
-                    this.entityData.set(IS_SLEEPING, false);
-                }
             }
+            if (this.isSleepingNow()) {
+                this.getNavigation().stop();
+                this.setDeltaMovement(0.0D, this.getDeltaMovement().y, 0.0D);
+            }
+        } else if (this.isSleepingNow()) {
+            this.entityData.set(IS_SLEEPING, false);
+        }
 
-            if (this.sprintTicks != 0) {
-                this.sprintTicks--;
-                this.setSprinting(true);
-                if (this.getNavigation().isDone() && this.tickCount % 20 == 0) {
-                    double tx = this.getX() + (this.random.nextDouble() - 0.5D) * 28.0D;
-                    double tz = this.getZ() + (this.random.nextDouble() - 0.5D) * 28.0D;
-                    this.getNavigation().moveTo(tx, this.getY(), tz, 1.45D);
-                }
-            } else {
-                this.setSprinting(this.getTarget() != null);
-                if (!isNight && !this.isSleepingNow() && !this.isInWater() && this.onGround() && !this.isOrderedToSit()
-                        && this.random.nextInt(1500) == 0) {
-                    this.sprintTicks = 75 + this.random.nextInt(35);
-                }
+        if (this.sprintTicks != 0) {
+            this.sprintTicks--;
+            this.setSprinting(true);
+            if (this.getNavigation().isDone() && this.tickCount % 20 == 0) {
+                double tx = this.getX() + (this.random.nextDouble() - 0.5D) * 28.0D;
+                double tz = this.getZ() + (this.random.nextDouble() - 0.5D) * 28.0D;
+                this.getNavigation().moveTo(tx, this.getY(), tz, 1.45D);
+            }
+        } else {
+            this.setSprinting(this.getTarget() != null);
+            if (!isNight && !this.isSleepingNow() && !this.isInWater() && this.onGround() && !this.isOrderedToSit()
+                    && this.random.nextInt(1500) == 0) {
+                this.sprintTicks = 75 + this.random.nextInt(35);
             }
         }
     }
 
     public boolean isSleepingNow() {
         return this.entityData.get(IS_SLEEPING);
+    }
+
+    public float getSleepProgress() {
+        return (float) this.sleepTransition / 30.0F;
     }
 
     @Override
