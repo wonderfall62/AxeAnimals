@@ -1,6 +1,6 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "axeanimals:item/orca_spawn_egg"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "axeanimals:item/orca_spawn_egg"
   }
 }
