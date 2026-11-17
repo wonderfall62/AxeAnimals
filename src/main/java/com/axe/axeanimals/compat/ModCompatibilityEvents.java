@@ -255,15 +255,17 @@ public class ModCompatibilityEvents {
             }
 
 
-            // 3. Ночной возврат дикого дракона в родное гнездо, посадка и сон
+      // 3. Ночной возврат дикого дракона в родное гнездо по горизонтали X/Z, посадка на землю и сон
             boolean isNight = !entity.level().isBrightOutside();
             if (isNight && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
                 double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
                 double hy = pData.getDoubleOr("AxeHomeY", entity.getY());
                 double hz = pData.getDoubleOr("AxeHomeZ", entity.getZ());
-                double distSq = entity.distanceToSqr(hx, hy, hz);
+                double dx = entity.getX() - hx;
+                double dz = entity.getZ() - hz;
+                double horizDistSq = dx * dx + dz * dz;
 
-                if (Double.compare(distSq, 196.0D) == 1) {
+                if (Double.compare(horizDistSq, 196.0D) == 1) {
                     if (entity.tickCount % 25 == 0) {
                         triggerIceAndFireDragonFlight(entity);
                         dragonMob.getNavigation().moveTo(hx, hy + 2.0D, hz, 1.35D);
@@ -273,7 +275,7 @@ public class ModCompatibilityEvents {
                     setDragonBooleanState(entity, "setHovering", false);
                     if (!entity.onGround()) {
                         Vec3 m = entity.getDeltaMovement();
-                        entity.setDeltaMovement(m.x * 0.4D, -0.25D, m.z * 0.4D);
+                        entity.setDeltaMovement(m.x * 0.3D, -0.28D, m.z * 0.3D);
                         entity.fallDistance = 0.0F;
                     } else {
                         dragonMob.getNavigation().stop();
@@ -284,7 +286,7 @@ public class ModCompatibilityEvents {
                 }
                 return;
             }
-
+            
             // 4. Днём: пробуждение и периодический естественный взлёт
             if (!isNight && entity.onGround() && entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
                 setDragonBooleanState(entity, "setInSittingPose", false);
