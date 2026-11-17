@@ -28,6 +28,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 public class ModCompatibilityEvents {
@@ -65,13 +66,11 @@ public class ModCompatibilityEvents {
                 AABB area = player.getBoundingBox().inflate(64.0D);
                 String biomePath = biomeHolder.unwrapKey().map(k -> k.identifier().getPath()).orElse("");
 
-                // 1. Акулы (в любых океанах)
                 long sharksNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("shark")).size();
                 if (Float.compare(sharksNearby, 1.5F) == -1) {
                     spawnMarineFromOtherMod(level, player, "shark", 1, 22.0D, 48.0D);
                 }
 
-                // 2. Нарвалы (в холодных и ледяных океанах — гарантированный спавн стайкой по 2-3 особи под водой)
                 boolean isColdOcean = biomePath.contains("cold") || biomePath.contains("frozen");
                 if (isColdOcean) {
                     long narwhalsNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("narwhal")).size();
@@ -80,7 +79,6 @@ public class ModCompatibilityEvents {
                     }
                 }
 
-                // 3. Морские змеи / Левиафаны (редко в глубоких океанах)
                 if (biomePath.contains("deep")) {
                     AABB wideArea = player.getBoundingBox().inflate(96.0D);
                     long serpentsNearby = level.getEntities(player, wideArea, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("sea_serpent")).size();
@@ -125,6 +123,20 @@ public class ModCompatibilityEvents {
             }
         }
     }
+    private static void triggerIceAndFireDragonFlight(Entity dragon) {
+        try {
+            for (Method m : dragon.getClass().getMethods()) {
+                String name = m.getName();
+                if ((name.equals("setFlying") || name.equals("setHovering")) && m.getParameterCount() == 1 && m.getParameterTypes()[0] == boolean.class) {
+                    m.invoke(dragon, true);
+                } else if ((name.equals("setSleeping") || name.equals("setOrderedToSit") || name.equals("setModelDead")) && m.getParameterCount() == 1 && m.getParameterTypes()[0] == boolean.class) {
+                    m.invoke(dragon, false);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     @SubscribeEvent
     public static void onDolphinInteract(PlayerInteractEvent.EntityInteract event) {
         if (!(event.getTarget() instanceof Dolphin dolphin) || dolphin.isBaby()) return;
@@ -201,37 +213,27 @@ public class ModCompatibilityEvents {
         if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
             if (entity.isVehicle()) return;
 
-            int flightTimer = entity.getPersistentData().getIntOr("AxeDragonFlight", 0);
-            if (flightTimer != 0) {
-                entity.getPersistentData().putInt("AxeDragonFlight", flightTimer - 1);
-                Vec3 look = entity.getLookAngle();
-                double vy = Float.compare(flightTimer, 55.0F) == 1 ? 0.52D : 0.08D;
-                entity.setDeltaMovement(look.x * 0.65D, vy, look.z * 0.65D);
-                entity.fallDistance = 0.0F;
-                return;
-            }
-
+            // Если дракон в воде или над водой — переключаем родной режим полёта Ice and Fire (с взмахами крыльев!)
             boolean overWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(2)).isEmpty();
-            if (overWater) {
-                entity.getPersistentData().putInt("AxeDragonFlight", 130);
+            if (overWater && entity.tickCount % 20 == 0) {
+                triggerIceAndFireDragonFlight(entity);
                 Vec3 look = entity.getLookAngle();
-                entity.setDeltaMovement(look.x * 0.65D, 0.72D, look.z * 0.65D);
-                entity.fallDistance = 0.0F;
+                entity.setDeltaMovement(look.x * 0.45D, 0.48D, look.z * 0.45D);
                 return;
             }
 
-            if (entity.onGround() && entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.55F) == -1) {
-                entity.getPersistentData().putInt("AxeDragonFlight", 130);
-                Vec3 look = entity.getLookAngle();
-                entity.setDeltaMovement(look.x * 0.60D, 0.68D, look.z * 0.60D);
+            // Периодический естественный взлёт дикого дракона через родной ИИ Ice and Fire
+            if (entity.onGround() && entity.tickCount % 240 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
+                triggerIceAndFireDragonFlight(entity);
                 return;
             }
 
+            // Если дракон застрял в листве/бревнах — расчищаем ветки и включаем родной полёт
             int stuck = entity.getPersistentData().getIntOr("AxeDragonStuck", 0);
-            boolean barelyMoving = Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.004D) == -1;
+            boolean barelyMoving = entity.onGround() && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1;
             if (barelyMoving) {
                 stuck++;
-                if (stuck >= 80) {
+                if (stuck >= 100) {
                     stuck = 0;
                     BlockPos center = entity.blockPosition();
                     for (int dx = -4; dx <= 4; dx++) {
@@ -248,9 +250,7 @@ public class ModCompatibilityEvents {
                             }
                         }
                     }
-                    entity.getPersistentData().putInt("AxeDragonFlight", 130);
-                    Vec3 look = entity.getLookAngle().scale(0.60D);
-                    entity.setDeltaMovement(look.x, 0.68D, look.z);
+                    triggerIceAndFireDragonFlight(entity);
                 }
             } else {
                 stuck = 0;
