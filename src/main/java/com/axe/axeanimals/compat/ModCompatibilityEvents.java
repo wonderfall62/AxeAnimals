@@ -304,3 +304,5 @@ public class ModCompatibilityEvents {
             }
             pData.putInt("AxeDragonStuck", stuck);
         }
+    }
+}
