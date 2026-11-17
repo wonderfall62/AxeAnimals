@@ -247,25 +247,25 @@ public class AxeAnimalsClient {
                     head.yRot = Mth.lerp(sp, 0.0F, 0.55F);
                     head.zRot = Mth.lerp(sp, 0.0F, -0.25F);
 
-                    // Передние лапы полностью подогнуты к груди (не торчат вниз)
-                    abl.xRot = Mth.lerp(sp, 0.15F, 0.85F);
-                    abl.zRot = 0.0F;
-                    al.xRot = Mth.lerp(sp, -0.10F, -2.10F);
-                    fal.xRot = Mth.lerp(sp, 0.10F, 1.25F);
-                    abr.xRot = Mth.lerp(sp, 0.15F, 0.85F);
-                    abr.zRot = 0.0F;
-                    ar.xRot = Mth.lerp(sp, -0.10F, -2.10F);
-                    far.xRot = Mth.lerp(sp, 0.10F, 1.25F);
+                    // Передние лапы выведены наружу вдоль боков груди (не заходят в туловище)
+                    abl.xRot = Mth.lerp(sp, 0.15F, 0.32F);
+                    abl.zRot = Mth.lerp(sp, 0.0F, -0.30F);
+                    al.xRot = Mth.lerp(sp, -0.10F, -1.55F);
+                    fal.xRot = Mth.lerp(sp, 0.10F, 1.15F);
+                    abr.xRot = Mth.lerp(sp, 0.15F, 0.32F);
+                    abr.zRot = Mth.lerp(sp, 0.0F, 0.30F);
+                    ar.xRot = Mth.lerp(sp, -0.10F, -1.55F);
+                    far.xRot = Mth.lerp(sp, 0.10F, 1.15F);
 
-                    // Задние лапы плотно поджаты к животу
-                    tl.xRot = Mth.lerp(sp, 0.0F, -1.45F);
-                    tl.zRot = 0.0F;
-                    ull.xRot = Mth.lerp(sp, 0.70F, 2.35F);
-                    lll.xRot = Mth.lerp(sp, -0.80F, -0.90F);
-                    tr.xRot = Mth.lerp(sp, 0.0F, -1.45F);
-                    tr.zRot = 0.0F;
-                    ulr.xRot = Mth.lerp(sp, 0.70F, 2.35F);
-                    llr.xRot = Mth.lerp(sp, -0.80F, -0.90F);
+                    // Задние лапы аккуратно сложены снаружи у бедра
+                    tl.xRot = Mth.lerp(sp, 0.0F, -1.25F);
+                    tl.zRot = Mth.lerp(sp, 0.0F, -0.34F);
+                    ull.xRot = Mth.lerp(sp, 0.70F, 2.25F);
+                    lll.xRot = Mth.lerp(sp, -0.80F, -0.95F);
+                    tr.xRot = Mth.lerp(sp, 0.0F, -1.25F);
+                    tr.zRot = Mth.lerp(sp, 0.0F, 0.34F);
+                    ulr.xRot = Mth.lerp(sp, 0.70F, 2.25F);
+                    llr.xRot = Mth.lerp(sp, -0.80F, -0.95F);
 
                     // Хвост оборачивается дугой вокруг тела по земле
                     tail1.xRot = Mth.lerp(sp, 0.56F, 0.82F);
