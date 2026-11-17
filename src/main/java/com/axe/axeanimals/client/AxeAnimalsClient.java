@@ -148,16 +148,14 @@ public class AxeAnimalsClient {
                     head.yRot = state.yRot * ((float) Math.PI / 180F) * 0.5F;
                     tail2.xRot = Mth.cos(lSwing * sp * 0.4F) * -0.1F * lAmt + 0.15F;
                 }
-            }
-        } else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
-                    ModelPart body = this.rootPart.getChild("body");
-                    float swim = age * 0.065F + t * 0.22F;
-                    float bp = state.breachProgress;
-                    float blend = Mth.sin(bp * (float) Math.PI);
-                    float arcPitch = -0.52F * Mth.sin(bp * (float) Math.PI * 2.0F);
-                    body.xRot = Mth.lerp(blend, Mth.sin(swim) * 0.045F, arcPitch);
-                    body.y += Mth.sin(swim) * 0.75F * (1.0F - blend * 0.7F);
-
+            } else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
+                ModelPart body = this.rootPart.getChild("body");
+                float swim = age * 0.065F + t * 0.22F;
+                float bp = state.breachProgress;
+                float blend = Mth.sin(bp * (float) Math.PI);
+                float arcPitch = -0.52F * Mth.sin(bp * (float) Math.PI * 2.0F);
+                body.xRot = Mth.lerp(blend, Mth.sin(swim) * 0.045F, arcPitch);
+                body.y += Mth.sin(swim) * 0.75F * (1.0F - blend * 0.7F);
                 if (body.hasChild("head") && body.getChild("head").hasChild("jaw")) {
                     body.getChild("head").getChild("jaw").xRot = (state.feedingProgress * 0.44F) + 0.02F + Mth.sin(swim * 0.5F) * 0.015F;
                 }
@@ -257,35 +255,35 @@ public class AxeAnimalsClient {
                     tail2.zRot = Mth.cos(5.0F + sw * 0.12F + (float) Math.PI) * -0.35F;
                 } else if (Float.compare(speed, 0.45F) == 1 && !state.isInWater) {
                     float lAmt = Math.min(1.0F, speed);
-                    abl.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * 0.375F * lAmt + 0.1F;
-                    al.xRot = Mth.cos(4.0F + t * 0.75F + (float) Math.PI) * -0.375F * lAmt - 0.2F;
-                    fal.xRot = Mth.cos(5.0F + t * 0.75F + (float) Math.PI) * 0.625F * lAmt + 0.25F;
-                    hl.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * 0.625F * lAmt + 0.4F;
-                    abr.xRot = Mth.cos(2.0F + t * 0.75F + (float) Math.PI) * 0.375F * lAmt + 0.1F;
-                    ar.xRot = Mth.cos(5.0F + t * 0.75F + (float) Math.PI) * -0.375F * lAmt - 0.2F;
-                    far.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * 0.625F * lAmt + 0.25F;
-                    hr.xRot = Mth.cos(2.0F + t * 0.75F + (float) Math.PI) * 0.625F * lAmt + 0.4F;
-                    tl.xRot = Mth.cos(1.0F + t * 0.75F + (float) Math.PI) * -0.475F * lAmt;
-                    ull.xRot = Mth.cos(3.0F + t * 0.75F + (float) Math.PI) * 0.25F * lAmt + 0.6F;
-                    lll.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * 0.25F * lAmt - 0.7F;
-                    fl.xRot = Mth.cos(4.0F + t * 0.75F + (float) Math.PI) * 0.5F * lAmt + 0.2F;
-                    tr.xRot = Mth.cos(2.0F + t * 0.75F + (float) Math.PI) * -0.475F * lAmt;
-                    ulr.xRot = Mth.cos(4.0F + t * 0.75F + (float) Math.PI) * 0.25F * lAmt + 0.6F;
-                    llr.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * 0.25F * lAmt - 0.7F;
-                    fr.xRot = Mth.cos(5.0F + t * 0.75F + (float) Math.PI) * 0.5F * lAmt + 0.2F;
-                    chest.xRot = Mth.cos(5.0F + t * 0.75F + (float) Math.PI) * -0.0625F * lAmt;
-                    backPoint.xRot = Mth.cos(1.0F + t * 0.75F + (float) Math.PI) * -0.10F * lAmt - 0.1F;
-                    hips.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * -0.25F * lAmt - 0.4F;
-                    neck.xRot = Mth.cos(6.0F + t * 0.75F + (float) Math.PI) * 0.125F * lAmt;
-                    head.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * -0.125F * lAmt + 0.1F;
-                    chest.y = Mth.cos(5.0F + t * 0.75F + (float) Math.PI) * -0.0625F * lAmt + 8.0F;
-                    tail1.xRot = Mth.cos(1.0F + t * 0.75F + (float) Math.PI) * 0.5F * lAmt + 1.0F;
-                    tail2.xRot = Mth.cos(3.0F + t * 0.75F + (float) Math.PI) * -0.25F * lAmt + 0.3F;
-                    mouth.xRot = Mth.cos(t * 0.75F + (float) Math.PI) * 0.125F * lAmt + 0.3F;
+                    abl.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * 0.375F * lAmt + 0.1F;
+                    al.xRot = Mth.cos(4.0F + t * 0.42F + (float) Math.PI) * -0.375F * lAmt - 0.2F;
+                    fal.xRot = Mth.cos(5.0F + t * 0.42F + (float) Math.PI) * 0.625F * lAmt + 0.25F;
+                    hl.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * 0.625F * lAmt + 0.4F;
+                    abr.xRot = Mth.cos(2.0F + t * 0.42F + (float) Math.PI) * 0.375F * lAmt + 0.1F;
+                    ar.xRot = Mth.cos(5.0F + t * 0.42F + (float) Math.PI) * -0.375F * lAmt - 0.2F;
+                    far.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * 0.625F * lAmt + 0.25F;
+                    hr.xRot = Mth.cos(2.0F + t * 0.42F + (float) Math.PI) * 0.625F * lAmt + 0.4F;
+                    tl.xRot = Mth.cos(1.0F + t * 0.42F + (float) Math.PI) * -0.475F * lAmt;
+                    ull.xRot = Mth.cos(3.0F + t * 0.42F + (float) Math.PI) * 0.25F * lAmt + 0.6F;
+                    lll.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * 0.25F * lAmt - 0.7F;
+                    fl.xRot = Mth.cos(4.0F + t * 0.42F + (float) Math.PI) * 0.5F * lAmt + 0.2F;
+                    tr.xRot = Mth.cos(2.0F + t * 0.42F + (float) Math.PI) * -0.475F * lAmt;
+                    ulr.xRot = Mth.cos(4.0F + t * 0.42F + (float) Math.PI) * 0.25F * lAmt + 0.6F;
+                    llr.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * 0.25F * lAmt - 0.7F;
+                    fr.xRot = Mth.cos(5.0F + t * 0.42F + (float) Math.PI) * 0.5F * lAmt + 0.2F;
+                    chest.xRot = Mth.cos(5.0F + t * 0.42F + (float) Math.PI) * -0.0625F * lAmt;
+                    backPoint.xRot = Mth.cos(1.0F + t * 0.42F + (float) Math.PI) * -0.10F * lAmt - 0.1F;
+                    hips.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * -0.25F * lAmt - 0.4F;
+                    neck.xRot = Mth.cos(6.0F + t * 0.42F + (float) Math.PI) * 0.125F * lAmt;
+                    head.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * -0.125F * lAmt + 0.1F;
+                    chest.y = Mth.cos(5.0F + t * 0.42F + (float) Math.PI) * -0.0625F * lAmt + 8.0F;
+                    tail1.xRot = Mth.cos(1.0F + t * 0.42F + (float) Math.PI) * 0.5F * lAmt + 1.0F;
+                    tail2.xRot = Mth.cos(3.0F + t * 0.42F + (float) Math.PI) * -0.25F * lAmt + 0.3F;
+                    mouth.xRot = Mth.cos(t * 0.42F + (float) Math.PI) * 0.125F * lAmt + 0.3F;
                 } else {
                     float lSwing = state.isInWater ? age : t;
                     float lAmt = state.isInWater ? 0.3F : speed;
-                    float sp = state.isInWater ? 2.0F : 2.5F;
+                    float sp = state.isInWater ? 2.0F : 2.2F;
                     abl.xRot = Mth.cos(lSwing * sp * 0.2F + (float) Math.PI) * 0.375F * lAmt + 0.15F;
                     al.xRot = Mth.cos(4.0F + lSwing * sp * 0.2F + (float) Math.PI) * -0.75F * lAmt - 0.1F;
                     fal.xRot = Mth.cos(2.0F + lSwing * sp * 0.2F + (float) Math.PI) * -0.50F * lAmt + 0.1F;
