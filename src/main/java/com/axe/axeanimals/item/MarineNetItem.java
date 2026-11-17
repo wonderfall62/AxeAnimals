@@ -1,5 +1,6 @@
 package com.axe.axeanimals.item;
 
+import com.axe.axeanimals.entity.OrcaEntity;
 import com.axe.axeanimals.entity.StingrayEntity;
 import com.axe.axeanimals.entity.WhaleEntity;
 import net.minecraft.core.BlockPos;
@@ -47,6 +48,7 @@ public class MarineNetItem extends Item {
 
     private boolean isCatchable(Entity target) {
         return target instanceof WhaleEntity
+                || target instanceof OrcaEntity
                 || target instanceof StingrayEntity
                 || target instanceof Dolphin
                 || target instanceof Squid
@@ -153,7 +155,7 @@ public class MarineNetItem extends Item {
             String name = data.copyTag().getStringOr("CapturedName", "Морской житель");
             tooltip.accept(Component.literal("§bПойман: §f" + name + " §7(ПКМ по воде/земле — выпустить)"));
         } else {
-            tooltip.accept(Component.literal("§7ПКМ по киту, скату, дельфину или рыбе — поймать"));
+            tooltip.accept(Component.literal("§7ПКМ по киту, косатке, скату, дельфину или рыбе — поймать"));
         }
     }
 }
