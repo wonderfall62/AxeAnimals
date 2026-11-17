@@ -113,7 +113,7 @@ public class WhaleEntity extends WaterAnimal {
     public float getBreachProgress() {
         int ticks = this.entityData.get(BREACH_TICKS);
         if (ticks == 0) return 0.0F;
-        return (float) (90 - ticks) / 90.0F;
+        return (float) (110 - ticks) / 110.0F;
     }
 
     public float getFeedingProgress() {
@@ -338,16 +338,15 @@ public class WhaleEntity extends WaterAnimal {
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
-            // Плавный вертикальный подъём с уходом вперёд
             if (bTicks != 0) {
                 Vec3 look = this.getLookAngle();
                 Vec3 m = this.getDeltaMovement();
-                if (Float.compare(bTicks, 68.0F) == 1) {
-                    this.setDeltaMovement(look.x * 0.95D, Math.max(m.y, 0.72D), look.z * 0.95D);
-                } else if (Float.compare(bTicks, 35.0F) == 1) {
-                    this.setDeltaMovement(look.x * 0.95D, m.y * 0.92D, look.z * 0.95D);
+                if (Float.compare(bTicks, 85.0F) == 1) {
+                    this.setDeltaMovement(look.x * 0.36D, Math.max(m.y, 0.58D), look.z * 0.36D);
+                } else if (Float.compare(bTicks, 55.0F) == 1) {
+                    this.setDeltaMovement(look.x * 0.32D, m.y * 0.88D, look.z * 0.32D);
                 } else {
-                    this.setDeltaMovement(look.x * 0.85D, m.y, look.z * 0.85D);
+                    this.setDeltaMovement(look.x * 0.24D, Math.max(m.y, -0.35D), look.z * 0.24D);
                 }
             }
 
@@ -361,8 +360,8 @@ public class WhaleEntity extends WaterAnimal {
                 var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(5.2D));
                 if (tooCloseBoats.isEmpty()) {
                     Vec3 look = this.getLookAngle();
-                    this.setDeltaMovement(look.x * 0.95D, 1.25D, look.z * 0.95D);
-                    this.entityData.set(BREACH_TICKS, 90);
+                    this.setDeltaMovement(look.x * 0.38D, 1.12D, look.z * 0.38D);
+                    this.entityData.set(BREACH_TICKS, 110);
                     this.breachCooldown = (this.escortTicks != 0) ? (850 + this.random.nextInt(300)) : (1800 + this.random.nextInt(1400));
                     this.playSound(SoundEvents.GENERIC_SPLASH, 2.2F, 0.45F);
                     ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 75, 3.2, 0.8, 3.2, 0.30);
