@@ -321,24 +321,26 @@ public class WhaleEntity extends WaterAnimal {
                 this.setDeltaMovement(m.x, Math.max(m.y, 0.68D), m.z);
             }
 
+            boolean nearSurface = !this.level().getFluidState(this.blockPosition().above(2)).is(FluidTags.WATER);
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 280.0F) == 1) {
-                    this.breachCooldown = 220 + this.random.nextInt(100);
+                if (this.escortTicks != 0 && Float.compare(this.breachCooldown, 850.0F) == 1) {
+                    this.breachCooldown = 700 + this.random.nextInt(250);
                 }
-            } else if (this.isInWater() && !shallow) {
+            } else if (this.isInWater() && !shallow && nearSurface) {
                 var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(5.2D));
                 if (tooCloseBoats.isEmpty()) {
                     Vec3 look = this.getLookAngle();
-                    this.setDeltaMovement(look.x * 0.62D, 1.38D, look.z * 0.62D);
+                    this.setDeltaMovement(look.x * 1.05D, 1.38D, look.z * 1.05D);
                     this.entityData.set(BREACH_TICKS, 50);
-                    this.breachCooldown = (this.escortTicks != 0) ? (260 + this.random.nextInt(140)) : (500 + this.random.nextInt(400));
+                    this.breachCooldown = (this.escortTicks != 0) ? (850 + this.random.nextInt(300)) : (1800 + this.random.nextInt(1400));
                     this.playSound(SoundEvents.GENERIC_SPLASH, 2.2F, 0.45F);
                     ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 75, 3.2, 0.8, 3.2, 0.30);
                 }
             }
         }
     }
+
 
     @Nullable
     @Override
