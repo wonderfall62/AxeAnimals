@@ -4,6 +4,7 @@ import com.axe.axeanimals.AxeAnimals;
 import com.axe.axeanimals.entity.FerretEntity;
 import com.axe.axeanimals.entity.LionEntity;
 import com.axe.axeanimals.entity.LionessEntity;
+import com.axe.axeanimals.entity.OrcaEntity;
 import com.axe.axeanimals.entity.StingrayEntity;
 import com.axe.axeanimals.entity.WhaleEntity;
 import net.minecraft.core.registries.Registries;
@@ -48,12 +49,18 @@ public class ModEntities {
                     .sized(1.35F, 1.45F)
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "lioness"))));
 
+    public static final DeferredHolder<EntityType<?>, EntityType<OrcaEntity>> ORCA = ENTITIES.register("orca",
+            () -> EntityType.Builder.of(OrcaEntity::new, MobCategory.WATER_CREATURE)
+                    .sized(2.3F, 1.25F)
+                    .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "orca"))));
+
     public static void registerAttributes(EntityAttributeCreationEvent event) {
         event.put(FERRET.get(), FerretEntity.createAttributes().build());
         event.put(WHALE.get(), WhaleEntity.createAttributes().build());
         event.put(STINGRAY.get(), StingrayEntity.createAttributes().build());
         event.put(LION.get(), LionEntity.createAttributes().build());
         event.put(LIONESS.get(), LionessEntity.createAttributes().build());
+        event.put(ORCA.get(), OrcaEntity.createAttributes().build());
     }
 
     public static void registerSpawnPlacements(RegisterSpawnPlacementsEvent event) {
@@ -62,5 +69,6 @@ public class ModEntities {
         event.register(STINGRAY.get(), SpawnPlacementTypes.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, WaterAnimal::checkSurfaceWaterAnimalSpawnRules, RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(LION.get(), SpawnPlacementTypes.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules, RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(LIONESS.get(), SpawnPlacementTypes.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules, RegisterSpawnPlacementsEvent.Operation.REPLACE);
+        event.register(ORCA.get(), SpawnPlacementTypes.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, OrcaEntity::checkOrcaSpawnRules, RegisterSpawnPlacementsEvent.Operation.REPLACE);
     }
 }
