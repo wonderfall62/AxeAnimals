@@ -55,28 +55,28 @@ public class ModCompatibilityEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         for (ServerLevel level : event.getServer().getAllLevels()) {
-            if (level.players().isEmpty() || level.getGameTime() % 200 != 0) continue;
+            if (level.players().isEmpty() || level.getGameTime() % 160 != 0) continue;
             for (ServerPlayer player : level.players()) {
-                if (player.isSpectator() || player.tickCount < 100) continue;
+                if (player.isSpectator() || player.tickCount < 80) continue;
                 BlockPos pPos = player.blockPosition();
                 var biomeHolder = level.getBiome(pPos);
                 if (!biomeHolder.is(BiomeTags.IS_OCEAN)) continue;
 
-                AABB area = player.getBoundingBox().inflate(56.0D);
+                AABB area = player.getBoundingBox().inflate(64.0D);
                 String biomePath = biomeHolder.unwrapKey().map(k -> k.identifier().getPath()).orElse("");
 
                 // 1. Акулы (в любых океанах)
                 long sharksNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("shark")).size();
                 if (Float.compare(sharksNearby, 1.5F) == -1) {
-                    spawnMarineFromOtherMod(level, player, "shark", 1, 26.0D, 52.0D);
+                    spawnMarineFromOtherMod(level, player, "shark", 1, 22.0D, 48.0D);
                 }
 
-                // 2. Нарвалы (ТОЛЬКО в холодных и ледяных океанах)
+                // 2. Нарвалы (в холодных и ледяных океанах — гарантированный спавн стайкой по 2-3 особи под водой)
                 boolean isColdOcean = biomePath.contains("cold") || biomePath.contains("frozen");
                 if (isColdOcean) {
                     long narwhalsNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("narwhal")).size();
-                    if (Float.compare(narwhalsNearby, 1.5F) == -1 && level.getRandom().nextBoolean()) {
-                        spawnMarineFromOtherMod(level, player, "narwhal", 2, 26.0D, 52.0D);
+                    if (Float.compare(narwhalsNearby, 1.5F) == -1) {
+                        spawnMarineFromOtherMod(level, player, "narwhal", 2 + level.getRandom().nextInt(2), 18.0D, 44.0D);
                     }
                 }
 
@@ -84,8 +84,8 @@ public class ModCompatibilityEvents {
                 if (biomePath.contains("deep")) {
                     AABB wideArea = player.getBoundingBox().inflate(96.0D);
                     long serpentsNearby = level.getEntities(player, wideArea, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("sea_serpent")).size();
-                    if (serpentsNearby == 0 && level.getRandom().nextInt(6) == 0) {
-                        spawnMarineFromOtherMod(level, player, "sea_serpent", 1, 45.0D, 75.0D);
+                    if (serpentsNearby == 0 && level.getRandom().nextInt(5) == 0) {
+                        spawnMarineFromOtherMod(level, player, "sea_serpent", 1, 40.0D, 70.0D);
                     }
                 }
             }
@@ -101,12 +101,13 @@ public class ModCompatibilityEvents {
                 .toList();
         if (types.isEmpty()) return;
 
-        for (int attempt = 0; attempt != 8; attempt++) {
+        int seaY = level.getSeaLevel();
+        for (int attempt = 0; attempt != 12; attempt++) {
             double angle = level.getRandom().nextDouble() * Math.PI * 2.0D;
             double dist = minDist + level.getRandom().nextDouble() * (maxDist - minDist);
             int sx = (int) (player.getX() + Math.cos(angle) * dist);
             int sz = (int) (player.getZ() + Math.sin(angle) * dist);
-            int sy = Math.max(level.getMinY() + 6, (int) player.getY() - 5 + level.getRandom().nextInt(9));
+            int sy = seaY - 2 - level.getRandom().nextInt(4);
             BlockPos spawnPos = new BlockPos(sx, sy, sz);
 
             if (level.isLoaded(spawnPos) && level.getFluidState(spawnPos).is(FluidTags.WATER) && level.getFluidState(spawnPos.below(2)).is(FluidTags.WATER)) {
@@ -200,35 +201,29 @@ public class ModCompatibilityEvents {
         if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
             if (entity.isVehicle()) return;
 
-            if (path.contains("ice") && entity.isInWater()) {
-                Vec3 m = entity.getDeltaMovement();
-                if (Double.compare(m.horizontalDistanceSqr(), 0.02D) == -1) {
-                    Vec3 look = entity.getLookAngle().scale(0.35D);
-                    entity.setDeltaMovement(look.x, -0.05D, look.z);
-                }
-                return;
-            }
-
-            boolean overWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(2)).isEmpty();
-            if (overWater && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.008D) == -1) {
-                Vec3 look = entity.getLookAngle().scale(0.45D);
-                entity.setDeltaMovement(look.x, 0.35D, look.z);
-                return;
-            }
-
-            // Периодический взлёт диких драконов в небо (чтобы не ходили постоянно пешком)
             int flightTimer = entity.getPersistentData().getIntOr("AxeDragonFlight", 0);
             if (flightTimer != 0) {
                 entity.getPersistentData().putInt("AxeDragonFlight", flightTimer - 1);
                 Vec3 look = entity.getLookAngle();
-                double vy = Float.compare(flightTimer, 70.0F) == 1 ? 0.28D : 0.04D;
-                entity.setDeltaMovement(look.x * 0.52D, vy, look.z * 0.52D);
+                double vy = Float.compare(flightTimer, 55.0F) == 1 ? 0.52D : 0.08D;
+                entity.setDeltaMovement(look.x * 0.65D, vy, look.z * 0.65D);
                 entity.fallDistance = 0.0F;
                 return;
-            } else if (entity.onGround() && !entity.isInWater() && entity.tickCount % 260 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
-                entity.getPersistentData().putInt("AxeDragonFlight", 110);
+            }
+
+            boolean overWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(2)).isEmpty();
+            if (overWater) {
+                entity.getPersistentData().putInt("AxeDragonFlight", 130);
                 Vec3 look = entity.getLookAngle();
-                entity.setDeltaMovement(look.x * 0.48D, 0.62D, look.z * 0.48D);
+                entity.setDeltaMovement(look.x * 0.65D, 0.72D, look.z * 0.65D);
+                entity.fallDistance = 0.0F;
+                return;
+            }
+
+            if (entity.onGround() && entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.55F) == -1) {
+                entity.getPersistentData().putInt("AxeDragonFlight", 130);
+                Vec3 look = entity.getLookAngle();
+                entity.setDeltaMovement(look.x * 0.60D, 0.68D, look.z * 0.60D);
                 return;
             }
 
@@ -253,8 +248,9 @@ public class ModCompatibilityEvents {
                             }
                         }
                     }
-                    Vec3 look = entity.getLookAngle().scale(0.55D);
-                    entity.setDeltaMovement(look.x, 0.55D, look.z);
+                    entity.getPersistentData().putInt("AxeDragonFlight", 130);
+                    Vec3 look = entity.getLookAngle().scale(0.60D);
+                    entity.setDeltaMovement(look.x, 0.68D, look.z);
                 }
             } else {
                 stuck = 0;
