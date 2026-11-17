@@ -225,16 +225,18 @@ public class AxeAnimalsClient {
                 ModelPart fr = llr.getChild("FootRight");
 
                 if (state.isStretching && !state.isInWater && Float.compare(speed, 0.05F) == -1) {
-                    chest.y = 8.4F;
-                    chest.xRot = 0.22F;
-                    neck.xRot = -0.35F;
-                    head.xRot = -0.10F;
-                    abl.xRot = -1.25F;
-                    al.xRot = 0.35F;
-                    abr.xRot = -1.25F;
-                    ar.xRot = 0.35F;
-                    tl.xRot = -0.25F;
-                    tr.xRot = -0.25F;
+                    chest.y = 12.8F;
+                    chest.xRot = 0.35F;
+                    backPoint.xRot = -0.32F;
+                    hips.xRot = -0.25F;
+                    neck.xRot = -0.45F;
+                    head.xRot = -0.05F;
+                    abl.xRot = -1.35F;
+                    al.xRot = 0.85F;
+                    abr.xRot = -1.35F;
+                    ar.xRot = 0.85F;
+                    tl.xRot = 0.12F;
+                    tr.xRot = 0.12F;
                     tail1.xRot = 0.95F;
                     tail2.xRot = 0.45F;
                 } else if (Float.compare(speed, 0.08F) == -1 && !state.isInWater) {
