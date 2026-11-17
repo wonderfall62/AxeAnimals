@@ -11,4 +11,7 @@
   "entity.axeanimals.stingray": "Скат",
   "entity.axeanimals.lion": "Лев",
   "entity.axeanimals.lioness": "Львица"
+  "entity.axeanimals.orca": "Косатка",
+  "item.axeanimals.orca_spawn_egg": "Яйцо призыва косатки"
+
 }
