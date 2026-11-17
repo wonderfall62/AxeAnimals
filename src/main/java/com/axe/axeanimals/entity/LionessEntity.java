@@ -182,8 +182,8 @@ public class LionessEntity extends TamableAnimal {
                 : ModEntities.LIONESS.get().create(level, EntitySpawnReason.BREEDING);
         if (cub != null) {
             cub.setBaby(true);
-            if (this.isTame() && this.getOwner() != null) {
-                cub.tame(this.getOwner());
+            if (this.isTame() && this.getOwner() instanceof Player owner) {
+                cub.tame(owner);
             }
         }
         return cub;
