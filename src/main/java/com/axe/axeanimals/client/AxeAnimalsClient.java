@@ -228,28 +228,34 @@ public class AxeAnimalsClient {
 
                 if (Float.compare(state.sleepProgress, 0.01F) == 1 && !state.isInWater) {
                     float sp = state.sleepProgress * state.sleepProgress * (3.0F - 2.0F * state.sleepProgress);
-                    chest.y = Mth.lerp(sp, 8.0F, 18.2F);
+                    chest.y = Mth.lerp(sp, 8.0F, 15.6F);
                     chest.xRot = Mth.lerp(sp, -0.087F, 0.02F);
-                    chest.zRot = Mth.lerp(sp, 0.0F, 0.08F);
-                    backPoint.xRot = Mth.lerp(sp, 0.0F, -0.02F);
-                    hips.xRot = Mth.lerp(sp, -0.349F, -0.25F);
-                    neck.xRot = Mth.lerp(sp, -0.02F, 0.36F);
-                    head.xRot = Mth.lerp(sp, 0.12F, 0.12F);
-                    head.zRot = Mth.lerp(sp, 0.0F, -0.22F);
-                    abl.xRot = Mth.lerp(sp, 0.15F, -1.35F);
+                    chest.zRot = Mth.lerp(sp, 0.0F, 0.06F);
+                    backPoint.xRot = Mth.lerp(sp, 0.0F, -0.04F);
+                    hips.xRot = Mth.lerp(sp, -0.349F, -0.32F);
+                    neck.xRot = Mth.lerp(sp, -0.02F, 0.14F);
+                    head.xRot = Mth.lerp(sp, 0.12F, 0.10F);
+                    head.zRot = Mth.lerp(sp, 0.0F, -0.18F);
+                    abl.xRot = Mth.lerp(sp, 0.15F, -1.25F);
+                    abl.zRot = Mth.lerp(sp, 0.0F, -0.22F);
                     al.xRot = Mth.lerp(sp, -0.10F, 0.45F);
-                    fal.xRot = Mth.lerp(sp, 0.10F, 0.85F);
-                    abr.xRot = Mth.lerp(sp, 0.15F, -1.35F);
+                    fal.xRot = Mth.lerp(sp, 0.10F, 0.72F);
+                    abr.xRot = Mth.lerp(sp, 0.15F, -1.25F);
+                    abr.zRot = Mth.lerp(sp, 0.0F, 0.22F);
                     ar.xRot = Mth.lerp(sp, -0.10F, 0.45F);
-                    far.xRot = Mth.lerp(sp, 0.10F, 0.85F);
-                    tl.xRot = Mth.lerp(sp, 0.0F, -1.05F);
-                    ull.xRot = Mth.lerp(sp, 0.70F, 1.35F);
-                    lll.xRot = Mth.lerp(sp, -0.80F, -0.35F);
-                    tr.xRot = Mth.lerp(sp, 0.0F, -1.05F);
-                    ulr.xRot = Mth.lerp(sp, 0.70F, 1.35F);
-                    llr.xRot = Mth.lerp(sp, -0.80F, -0.35F);
-                    tail1.xRot = Mth.lerp(sp, 0.56F, 0.15F);
-                    tail2.xRot = Mth.lerp(sp, 0.21F, 0.10F);
+                    far.xRot = Mth.lerp(sp, 0.10F, 0.72F);
+                    tl.xRot = Mth.lerp(sp, 0.0F, -0.85F);
+                    tl.zRot = Mth.lerp(sp, 0.0F, -0.18F);
+                    ull.xRot = Mth.lerp(sp, 0.70F, 1.15F);
+                    lll.xRot = Mth.lerp(sp, -0.80F, -0.45F);
+                    tr.xRot = Mth.lerp(sp, 0.0F, -0.85F);
+                    tr.zRot = Mth.lerp(sp, 0.0F, 0.18F);
+                    ulr.xRot = Mth.lerp(sp, 0.70F, 1.15F);
+                    llr.xRot = Mth.lerp(sp, -0.80F, -0.45F);
+                    tail1.xRot = Mth.lerp(sp, 0.56F, 0.72F);
+                    tail1.zRot = Mth.lerp(sp, 0.0F, 0.42F);
+                    tail2.xRot = Mth.lerp(sp, 0.21F, 0.25F);
+                    tail2.zRot = Mth.lerp(sp, 0.0F, 0.35F);
                 } else if (state.isSitting && !state.isInWater) {
                     chest.y = 10.6F;
                     chest.xRot = -0.36F;
@@ -360,17 +366,17 @@ public class AxeAnimalsClient {
                 float arcPitch = -0.62F * Mth.sin(bp * (float) Math.PI * 2.0F);
 
                 if (state.isFinCruising && bp == 0.0F) {
-                    float slowSwim = age * 0.24F;
-                    float wave = Mth.sin(age * 0.09F);
-                    body.y = 5.4F - wave * 2.8F;
-                    body.xRot = -0.14F * Mth.cos(age * 0.09F);
-                    chest.xRot = 0.14F + Mth.cos(6.0F + slowSwim * 0.3F + (float) Math.PI) * -0.14F;
-                    tail1.xRot = -0.0873F + Mth.cos(1.0F + slowSwim * 0.3F + (float) Math.PI) * -0.26F;
-                    tail2.xRot = -0.0524F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * -0.20F;
-                    tail3.xRot = -0.1396F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * -0.32F;
-                    tail4.xRot = -0.0873F + Mth.cos(5.0F + slowSwim * 0.3F + (float) Math.PI) * -0.45F;
-                    finR.yRot = 0.0873F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * 0.06F;
-                    finL.yRot = -0.0873F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * -0.06F;
+                    float slowSwim = age * 0.20F;
+                    float wave = Mth.sin(age * 0.08F);
+                    body.y = 9.4F - wave * 0.85F;
+                    body.xRot = -0.07F * Mth.cos(age * 0.08F);
+                    chest.xRot = 0.14F + Mth.cos(6.0F + slowSwim * 0.3F + (float) Math.PI) * -0.10F;
+                    tail1.xRot = -0.0873F + Mth.cos(1.0F + slowSwim * 0.3F + (float) Math.PI) * -0.18F;
+                    tail2.xRot = -0.0524F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * -0.14F;
+                    tail3.xRot = -0.1396F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * -0.22F;
+                    tail4.xRot = -0.0873F + Mth.cos(5.0F + slowSwim * 0.3F + (float) Math.PI) * -0.30F;
+                    finR.yRot = 0.0873F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * 0.05F;
+                    finL.yRot = -0.0873F + Mth.cos(slowSwim * 0.3F + (float) Math.PI) * -0.05F;
                 } else {
                     body.xRot = Mth.lerp(blend, Mth.cos(swimPos * 0.3F + (float) Math.PI) * 0.28F * swimAmp, arcPitch);
                     body.y = 10.5F + Mth.sin(swimPos * 0.3F) * 0.85F * (1.0F - blend * 0.7F);
