@@ -258,7 +258,7 @@ public class OrcaEntity extends WaterAnimal {
                 }
             }
 
-            // Спокойное волнообразное патрулирование стаи у поверхности (плавники регулярно выныривают из воды и уходят обратно)
+            // Ровное скольжение стаи на уровне глади воды (без упирания в потолок!)
             int fcTicks = this.entityData.get(FIN_CRUISE_TICKS);
             if (fcTicks != 0) {
                 this.entityData.set(FIN_CRUISE_TICKS, fcTicks - 1);
@@ -268,23 +268,10 @@ public class OrcaEntity extends WaterAnimal {
                     boolean airRightAbove = !this.level().getFluidState(this.blockPosition().above()).is(FluidTags.WATER);
                     boolean deepUnderwater = this.level().getFluidState(this.blockPosition().above(2)).is(FluidTags.WATER);
 
-                    double vy;
-                    if (deepUnderwater) {
-                        // Если косатка глубоко — плавно всплывает к поверхности
-                        vy = 0.22D;
-                    } else {
-                        // У самой поверхности: волной то показывает плавник над водой, то опускается на блок ниже
-                        double wave = Math.sin(fcTicks * 0.09D);
-                        if (airRightAbove && Double.compare(wave, 0.0D) == 1) {
-                            vy = -0.02D;
-                        } else {
-                            vy = wave * 0.14D;
-                        }
-                    }
-                    // Спокойная, величественная скорость патрулирования
-                    this.setDeltaMovement(look.x * 0.28D, vy, look.z * 0.28D);
-                    if (airRightAbove && this.tickCount % 6 == 0) {
-                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.65, this.getZ(), 3, 0.3, 0.08, 0.3, 0.03);
+                    double vy = deepUnderwater ? 0.09D : (airRightAbove ? -0.015D : 0.02D);
+                    this.setDeltaMovement(look.x * 0.26D, vy, look.z * 0.26D);
+                    if (airRightAbove && this.tickCount % 8 == 0) {
+                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.55, this.getZ(), 2, 0.25, 0.05, 0.25, 0.02);
                     }
                 }
             } else {
