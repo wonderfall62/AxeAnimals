@@ -11,8 +11,8 @@
     {
       "type": "axeanimals:orca",
       "weight": 5,
-      "minCount": 1,
-      "maxCount": 1
+      "minCount": 3,
+      "maxCount": 3
     },
     {
       "type": "axeanimals:stingray",
