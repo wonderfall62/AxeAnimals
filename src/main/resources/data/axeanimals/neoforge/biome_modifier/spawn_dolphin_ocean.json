@@ -13,8 +13,7 @@
     {
       "type": "minecraft:dolphin",
       "weight": 6,
-      "minCount": 1,
-      "maxCount": 1
+      "count": 1
     }
   ]
 }
