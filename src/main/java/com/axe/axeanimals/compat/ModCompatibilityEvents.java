@@ -38,8 +38,7 @@ public class ModCompatibilityEvents {
         String ns = id.getNamespace();
         String path = id.getPath();
 
-        // Анти-кучкование в океане: не спавним новую стаю поверх уже существующей в радиусе 48 блоков
-        if (event.getSpawnReason() == EntitySpawnReason.NATURAL) {
+        if (event.getSpawnType() == EntitySpawnReason.NATURAL) {
             if (mob instanceof Dolphin) {
                 int count = mob.level().getEntitiesOfClass(Dolphin.class, mob.getBoundingBox().inflate(48.0D)).size();
                 if (Float.compare(count, 5.5F) == 1) {
@@ -74,7 +73,6 @@ public class ModCompatibilityEvents {
         }
     }
 
-    // Регулярный спавн акул в океане вокруг игрока, чтобы морские хищники встречались чаще
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         for (ServerLevel level : event.getServer().getAllLevels()) {
@@ -97,17 +95,17 @@ public class ModCompatibilityEvents {
                 if (sharkTypes.isEmpty()) continue;
 
                 for (int attempt = 0; attempt != 6; attempt++) {
-                    double angle = level.random.nextDouble() * Math.PI * 2.0D;
-                    double dist = 24.0D + level.random.nextDouble() * 24.0D;
+                    double angle = level.getRandom().nextDouble() * Math.PI * 2.0D;
+                    double dist = 24.0D + level.getRandom().nextDouble() * 24.0D;
                     int sx = (int) (player.getX() + Math.cos(angle) * dist);
                     int sz = (int) (player.getZ() + Math.sin(angle) * dist);
-                    int sy = Math.max(level.getMinY() + 5, (int) player.getY() - 4 + level.random.nextInt(8));
+                    int sy = Math.max(level.getMinY() + 5, (int) player.getY() - 4 + level.getRandom().nextInt(8));
                     BlockPos spawnPos = new BlockPos(sx, sy, sz);
                     if (level.getFluidState(spawnPos).is(FluidTags.WATER) && level.getFluidState(spawnPos.below(2)).is(FluidTags.WATER)) {
-                        EntityType<?> chosen = sharkTypes.get(level.random.nextInt(sharkTypes.size()));
+                        EntityType<?> chosen = sharkTypes.get(level.getRandom().nextInt(sharkTypes.size()));
                         Entity shark = chosen.create(level, EntitySpawnReason.NATURAL);
                         if (shark != null) {
-                            shark.snapTo(sx + 0.5D, sy, sz + 0.5D, level.random.nextFloat() * 360.0F, 0.0F);
+                            shark.snapTo(sx + 0.5D, sy, sz + 0.5D, level.getRandom().nextFloat() * 360.0F, 0.0F);
                             level.addFreshEntity(shark);
                         }
                         break;
