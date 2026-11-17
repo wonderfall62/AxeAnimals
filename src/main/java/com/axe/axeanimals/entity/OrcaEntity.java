@@ -202,30 +202,12 @@ public class OrcaEntity extends WaterAnimal {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
-            // Спавн стаи строго из 3 косаток (вожак + 2 сородича)
-            if (this.tickCount == 5 && this.getPersistentData().getBooleanOr("NeedsPodSpawn", false)) {
-                this.getPersistentData().remove("NeedsPodSpawn");
-                ServerLevel sl = (ServerLevel) this.level();
-                int podCount = 2;
-                for (int i = 0; i != podCount; i++) {
-                    OrcaEntity mate = ModEntities.ORCA.get().create(sl, EntitySpawnReason.NATURAL);
-                    if (mate != null) {
-                        if (i == 1 && this.random.nextInt(3) == 0) {
-                            mate.setBabyOrca(true);
-                        }
-                        double ox = (this.random.nextDouble() - 0.5D) * 7.0D;
-                        double oz = (this.random.nextDouble() - 0.5D) * 7.0D;
-                        mate.snapTo(this.getX() + ox, this.getY(), this.getZ() + oz, this.getYRot(), 0);
-                        sl.addFreshEntity(mate);
-                    }
-                }
-            }
-
             if (this.breedCooldown != 0) this.breedCooldown--;
             if (this.isBaby() && this.babyGrowTicks != 0) {
                 this.babyGrowTicks--;
                 if (this.babyGrowTicks == 0) this.setBabyOrca(false);
             }
+
 
             int bTicks = this.entityData.get(BREACH_TICKS);
             if (bTicks != 0) {
