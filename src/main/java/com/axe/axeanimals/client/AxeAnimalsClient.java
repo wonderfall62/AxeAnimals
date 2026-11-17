@@ -149,13 +149,15 @@ public class AxeAnimalsClient {
                     tail2.xRot = Mth.cos(lSwing * sp * 0.4F) * -0.1F * lAmt + 0.15F;
                 }
             }
-            else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
-                ModelPart body = this.rootPart.getChild("body");
-                float swim = age * 0.065F + t * 0.22F;
-                float bp = state.breachProgress;
-                float blend = Mth.sin(bp * (float) Math.PI);
-                body.xRot = Mth.lerp(blend, Mth.sin(swim) * 0.045F, -0.62F * Mth.cos(bp * (float) Math.PI));
-                body.y += Mth.sin(swim) * 0.75F * (1.0F - blend * 0.6F);
+        } else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
+                    ModelPart body = this.rootPart.getChild("body");
+                    float swim = age * 0.065F + t * 0.22F;
+                    float bp = state.breachProgress;
+                    float blend = Mth.sin(bp * (float) Math.PI);
+                    float arcPitch = -0.52F * Mth.sin(bp * (float) Math.PI * 2.0F);
+                    body.xRot = Mth.lerp(blend, Mth.sin(swim) * 0.045F, arcPitch);
+                    body.y += Mth.sin(swim) * 0.75F * (1.0F - blend * 0.7F);
+
                 if (body.hasChild("head") && body.getChild("head").hasChild("jaw")) {
                     body.getChild("head").getChild("jaw").xRot = (state.feedingProgress * 0.44F) + 0.02F + Mth.sin(swim * 0.5F) * 0.015F;
                 }
