@@ -6,12 +6,11 @@
   "item.axeanimals.stingray_spawn_egg": "Яйцо призыва ската",
   "item.axeanimals.lion_spawn_egg": "Яйцо призыва льва",
   "item.axeanimals.lioness_spawn_egg": "Яйцо призыва львицы",
+  "item.axeanimals.orca_spawn_egg": "Яйцо призыва косатки",
   "entity.axeanimals.ferret": "Хорёк",
   "entity.axeanimals.whale": "Горбатый кит",
   "entity.axeanimals.stingray": "Скат",
   "entity.axeanimals.lion": "Лев",
-  "entity.axeanimals.lioness": "Львица"
-  "entity.axeanimals.orca": "Косатка",
-  "item.axeanimals.orca_spawn_egg": "Яйцо призыва косатки"
-
+  "entity.axeanimals.lioness": "Львица",
+  "entity.axeanimals.orca": "Косатка"
 }
