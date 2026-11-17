@@ -329,18 +329,19 @@ public class AxeAnimalsClient {
 
                 float bp = state.breachProgress;
                 float blend = Mth.sin(bp * (float) Math.PI);
-                float swimPos = age * 0.35F + t * 0.45F;
-                float swimAmp = 0.25F + 0.35F * Math.min(1.0F, speed);
+                float swimPos = age * 0.48F + t * 0.55F;
+                float swimAmp = 0.30F + 0.42F * Math.min(1.0F, speed);
+                float arcPitch = -0.62F * Mth.sin(bp * (float) Math.PI * 2.0F);
 
-                body.xRot = Mth.lerp(blend, Mth.cos(swimPos * 0.3F + (float) Math.PI) * 0.32F * swimAmp, -0.75F * Mth.cos(bp * (float) Math.PI));
-                body.y = 10.5F + Mth.sin(swimPos * 0.3F) * 0.85F * (1.0F - blend * 0.5F);
-                chest.xRot = 0.1396F + Mth.cos(6.0F + swimPos * 0.3F + (float) Math.PI) * -0.35F * swimAmp;
-                tail1.xRot = -0.0873F + Mth.cos(1.0F + swimPos * 0.3F + (float) Math.PI) * (-0.65F * swimAmp - 0.25F * blend);
-                tail2.xRot = -0.0524F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * (-0.45F * swimAmp - 0.25F * blend);
-                tail3.xRot = -0.1396F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * (-0.75F * swimAmp - 0.30F * blend);
-                tail4.xRot = -0.0873F + Mth.cos(5.0F + swimPos * 0.3F + (float) Math.PI) * (-1.15F * swimAmp - 0.35F * blend);
-                finR.yRot = 0.0873F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * 0.08F * swimAmp;
-                finL.yRot = -0.0873F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * -0.08F * swimAmp;
+                body.xRot = Mth.lerp(blend, Mth.cos(swimPos * 0.3F + (float) Math.PI) * 0.28F * swimAmp, arcPitch);
+                body.y = 10.5F + Mth.sin(swimPos * 0.3F) * 0.85F * (1.0F - blend * 0.7F);
+                chest.xRot = 0.1396F + Mth.cos(6.0F + swimPos * 0.3F + (float) Math.PI) * -0.32F * swimAmp;
+                tail1.xRot = -0.0873F + Mth.cos(1.0F + swimPos * 0.3F + (float) Math.PI) * (-0.65F * swimAmp - 0.22F * blend);
+                tail2.xRot = -0.0524F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * (-0.45F * swimAmp - 0.22F * blend);
+                tail3.xRot = -0.1396F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * (-0.75F * swimAmp - 0.28F * blend);
+                tail4.xRot = -0.0873F + Mth.cos(5.0F + swimPos * 0.3F + (float) Math.PI) * (-1.10F * swimAmp - 0.32F * blend);
+                finR.yRot = 0.0873F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * 0.10F * swimAmp;
+                finL.yRot = -0.0873F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * -0.10F * swimAmp;
             }
         }
     }
