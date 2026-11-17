@@ -258,24 +258,40 @@ public class OrcaEntity extends WaterAnimal {
                 }
             }
 
+            // Спокойное волнообразное патрулирование стаи у поверхности (плавники регулярно выныривают из воды и уходят обратно)
             int fcTicks = this.entityData.get(FIN_CRUISE_TICKS);
             if (fcTicks != 0) {
                 this.entityData.set(FIN_CRUISE_TICKS, fcTicks - 1);
                 if (this.isInWater()) {
+                    this.getNavigation().stop();
                     Vec3 look = this.getLookAngle();
-                    double wave = Math.sin(fcTicks * 0.13D);
-                    boolean tooHigh = !this.level().getFluidState(this.blockPosition().above()).is(FluidTags.WATER);
-                    double vy = (tooHigh && Double.compare(wave, 0.0D) == 1) ? -0.05D : (wave * 0.13D);
-                    this.setDeltaMovement(look.x * 0.52D, vy, look.z * 0.52D);
-                    if (tooHigh && this.tickCount % 5 == 0) {
-                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.6, this.getZ(), 3, 0.3, 0.1, 0.3, 0.04);
+                    boolean airRightAbove = !this.level().getFluidState(this.blockPosition().above()).is(FluidTags.WATER);
+                    boolean deepUnderwater = this.level().getFluidState(this.blockPosition().above(2)).is(FluidTags.WATER);
+
+                    double vy;
+                    if (deepUnderwater) {
+                        // Если косатка глубоко — плавно всплывает к поверхности
+                        vy = 0.22D;
+                    } else {
+                        // У самой поверхности: волной то показывает плавник над водой, то опускается на блок ниже
+                        double wave = Math.sin(fcTicks * 0.09D);
+                        if (airRightAbove && Double.compare(wave, 0.0D) == 1) {
+                            vy = -0.02D;
+                        } else {
+                            vy = wave * 0.14D;
+                        }
+                    }
+                    // Спокойная, величественная скорость патрулирования
+                    this.setDeltaMovement(look.x * 0.28D, vy, look.z * 0.28D);
+                    if (airRightAbove && this.tickCount % 6 == 0) {
+                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.65, this.getZ(), 3, 0.3, 0.08, 0.3, 0.03);
                     }
                 }
             } else {
                 if (this.finCruiseCooldown != 0) {
                     this.finCruiseCooldown--;
-                } else if (this.isInWater() && this.entityData.get(BREACH_TICKS) == 0 && this.random.nextInt(120) == 0) {
-                    int dur = 240;
+                } else if (this.isInWater() && this.entityData.get(BREACH_TICKS) == 0 && this.getTarget() == null && this.random.nextInt(120) == 0) {
+                    int dur = 280;
                     this.startFinCruise(dur);
                     List<OrcaEntity> pod = this.level().getEntitiesOfClass(OrcaEntity.class, this.getBoundingBox().inflate(36.0D), o -> o != this);
                     for (OrcaEntity mate : pod) {
