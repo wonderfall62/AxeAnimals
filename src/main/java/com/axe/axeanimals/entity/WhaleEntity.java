@@ -338,22 +338,36 @@ public class WhaleEntity extends WaterAnimal {
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
-            // Сначала 18 тиков разгона носом вверх в воде, затем плавный вылет дугой и вертикальный уход в воду
+            // Прыжок с громким шумом брызг и пеной на вылете из воды И при входе обратно в воду
             if (bTicks != 0) {
                 Vec3 look = this.getLookAngle();
                 Vec3 m = this.getDeltaMovement();
+                ServerLevel sl = (ServerLevel) this.level();
                 if (Float.compare(bTicks, 92.0F) == 1) {
                     this.setDeltaMovement(look.x * 0.25D, 0.12D, look.z * 0.25D);
                 } else if (bTicks == 92) {
                     this.setDeltaMovement(look.x * 0.36D, 0.88D, look.z * 0.36D);
-                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.2F, 0.45F);
-                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 75, 3.2, 0.8, 3.2, 0.30);
+                    this.playSound(SoundEvents.GENERIC_SPLASH, 2.8F, 0.48F);
+                    this.playSound(SoundEvents.DOLPHIN_SPLASH, 2.4F, 0.42F);
+                    sl.sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.0, this.getZ(), 120, 3.6, 1.0, 3.6, 0.35);
+                    sl.sendParticles(ParticleTypes.CLOUD, this.getX(), this.getY() + 1.0, this.getZ(), 24, 2.6, 0.5, 2.6, 0.08);
                 } else if (Float.compare(bTicks, 68.0F) == 1) {
                     this.setDeltaMovement(look.x * 0.34D, Math.max(m.y, 0.42D), look.z * 0.34D);
+                    if (bTicks % 3 == 0) {
+                        sl.sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.5, this.getZ(), 35, 2.4, 0.8, 2.4, 0.25);
+                    }
                 } else if (Float.compare(bTicks, 40.0F) == 1) {
                     this.setDeltaMovement(look.x * 0.28D, m.y * 0.88D, look.z * 0.28D);
                 } else {
                     this.setDeltaMovement(look.x * 0.22D, Math.max(m.y, -0.32D), look.z * 0.22D);
+                    if (bTicks == 24) {
+                        this.playSound(SoundEvents.GENERIC_SPLASH, 3.0F, 0.42F);
+                        this.playSound(SoundEvents.DOLPHIN_SPLASH, 2.5F, 0.38F);
+                        sl.sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.8, this.getZ(), 140, 4.0, 1.0, 4.0, 0.40);
+                        sl.sendParticles(ParticleTypes.CLOUD, this.getX(), this.getY() + 0.8, this.getZ(), 30, 3.0, 0.6, 3.0, 0.10);
+                    } else if (bTicks % 4 == 0 && Float.compare(bTicks, 24.0F) == -1) {
+                        sl.sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.6, this.getZ(), 40, 2.6, 0.6, 2.6, 0.25);
+                    }
                 }
             }
 
