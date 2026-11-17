@@ -18,6 +18,11 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.animal.cow.Cow;
+import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.animal.sheep.Sheep;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -53,6 +58,13 @@ public class LionessEntity extends TamableAnimal {
 
     @Override
     protected void registerGoals() {
+                this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Animal.class, 220, true, false,
+                (target, level) -> !this.isTame() && !this.isBaby()
+                        && !(target instanceof LionEntity)
+                        && !(target instanceof LionessEntity)
+                        && !(target instanceof FerretEntity)
+                        && !(target instanceof TamableAnimal t && t.isTame())));
+
         this.goalSelector.addGoal(1, new FloatGoal(this));
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.35D, true));
