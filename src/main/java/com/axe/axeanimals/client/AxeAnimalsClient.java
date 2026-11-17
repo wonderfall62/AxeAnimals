@@ -247,25 +247,26 @@ public class AxeAnimalsClient {
                     head.yRot = Mth.lerp(sp, 0.0F, 0.48F);
                     head.zRot = Mth.lerp(sp, 0.0F, -0.25F);
 
-                    // Передние лапы вытянуты вбок по поверхности земли (не уходят под траву!)
+                    // Передние лапы вытянуты в ту же сторону (на левый бок, +zRot) поверх земли
                     abl.xRot = Mth.lerp(sp, 0.15F, -0.35F);
-                    abl.zRot = Mth.lerp(sp, 0.0F, -0.95F);
+                    abl.zRot = Mth.lerp(sp, 0.0F, 1.05F);
                     al.xRot = Mth.lerp(sp, -0.10F, 0.25F);
                     fal.xRot = Mth.lerp(sp, 0.10F, 0.10F);
                     abr.xRot = Mth.lerp(sp, 0.15F, -0.45F);
-                    abr.zRot = Mth.lerp(sp, 0.0F, -0.65F);
+                    abr.zRot = Mth.lerp(sp, 0.0F, 0.78F);
                     ar.xRot = Mth.lerp(sp, -0.10F, 0.35F);
                     far.xRot = Mth.lerp(sp, 0.10F, 0.10F);
 
-                    // Задние лапы тоже вытянуты вбок по траве
+                    // Задние лапы тоже вытянуты на левый бок (+zRot) над травой
                     tl.xRot = Mth.lerp(sp, 0.0F, -0.25F);
-                    tl.zRot = Mth.lerp(sp, 0.0F, -0.95F);
-                    ull.xRot = Mth.lerp(sp, 0.70F, 0.45F);
-                    lll.xRot = Mth.lerp(sp, -0.80F, -0.20F);
+                    tl.zRot = Mth.lerp(sp, 0.0F, 1.05F);
+                    ull.xRot = Mth.lerp(sp, 0.70F, 0.40F);
+                    lll.xRot = Mth.lerp(sp, -0.80F, -0.15F);
                     tr.xRot = Mth.lerp(sp, 0.0F, -0.35F);
-                    tr.zRot = Mth.lerp(sp, 0.0F, -0.65F);
-                    ulr.xRot = Mth.lerp(sp, 0.70F, 0.55F);
-                    llr.xRot = Mth.lerp(sp, -0.80F, -0.25F);
+                    tr.zRot = Mth.lerp(sp, 0.0F, 0.78F);
+                    ulr.xRot = Mth.lerp(sp, 0.70F, 0.48F);
+                    llr.xRot = Mth.lerp(sp, -0.80F, -0.20F);
+
 
                     // Хвост спокойно лежит на траве за спиной
                     tail1.xRot = Mth.lerp(sp, 0.56F, 0.78F);
