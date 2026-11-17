@@ -258,18 +258,17 @@ public class OrcaEntity extends WaterAnimal {
                 }
             }
 
-            // Синхронное патрулирование стаи у самой поверхности (плавники над водой, как в фильмах!)
             int fcTicks = this.entityData.get(FIN_CRUISE_TICKS);
             if (fcTicks != 0) {
                 this.entityData.set(FIN_CRUISE_TICKS, fcTicks - 1);
                 if (this.isInWater()) {
-                    boolean airAbove = !this.level().getFluidState(this.blockPosition().above()).is(FluidTags.WATER);
                     Vec3 look = this.getLookAngle();
-                    double vy = airAbove ? -0.02D : 0.14D;
-                    this.setDeltaMovement(look.x * 0.42D, vy, look.z * 0.42D);
-                    this.setYRot(this.getYRot() + 1.1F);
-                    if (this.tickCount % 6 == 0) {
-                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.7, this.getZ(), 4, 0.4, 0.1, 0.4, 0.05);
+                    double wave = Math.sin(fcTicks * 0.13D);
+                    boolean tooHigh = !this.level().getFluidState(this.blockPosition().above()).is(FluidTags.WATER);
+                    double vy = (tooHigh && Double.compare(wave, 0.0D) == 1) ? -0.05D : (wave * 0.13D);
+                    this.setDeltaMovement(look.x * 0.52D, vy, look.z * 0.52D);
+                    if (tooHigh && this.tickCount % 5 == 0) {
+                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.6, this.getZ(), 3, 0.3, 0.1, 0.3, 0.04);
                     }
                 }
             } else {
@@ -299,7 +298,6 @@ public class OrcaEntity extends WaterAnimal {
                 this.entityData.set(BREACH_TICKS, bTicks - 1);
             }
 
-            // Прирученная косатка плывёт за хозяином И в воде, И когда хозяин на лодке!
             if (this.isTamedOrca()) {
                 Player owner = this.getOwnerPlayer();
                 boolean ownerAquatic = owner != null && (owner.isInWater() || owner.getVehicle() instanceof Boat);
