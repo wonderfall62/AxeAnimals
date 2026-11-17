@@ -215,10 +215,14 @@ public class ModCompatibilityEvents {
             return;
         }
 
-        if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
+            if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
             if (entity.isVehicle()) return;
 
-            // Запоминаем координаты родного логова при появлении дракона
+            // 0. Запрещаем драконам охотиться на рыб и подводных мобов (чтобы не зависали над водой)
+            if (entity instanceof Mob dragonMob && dragonMob.getTarget() != null && dragonMob.getTarget().isInWater()) {
+                dragonMob.setTarget(null);
+            }
+
             var pData = entity.getPersistentData();
             if (!pData.contains("AxeHomeX")) {
                 pData.putDouble("AxeHomeX", entity.getX());
@@ -236,7 +240,7 @@ public class ModCompatibilityEvents {
                 return;
             }
 
-            // 2. Ночной возврат дикого дракона в родное гнездо и сон в логове
+            // 2. Ночной возврат дикого дракона в родное гнездо, посадка и сон
             boolean isNight = !entity.level().isBrightOutside();
             if (isNight && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
                 double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
@@ -245,14 +249,22 @@ public class ModCompatibilityEvents {
                 double distSq = entity.distanceToSqr(hx, hy, hz);
 
                 if (Double.compare(distSq, 196.0D) == 1) {
-                    if (entity.tickCount % 30 == 0) {
+                    if (entity.tickCount % 25 == 0) {
                         triggerIceAndFireDragonFlight(entity);
-                        dragonMob.getNavigation().moveTo(hx, hy + 3.0D, hz, 1.35D);
+                        dragonMob.getNavigation().moveTo(hx, hy + 2.0D, hz, 1.35D);
                     }
-                } else if (entity.onGround() && entity.tickCount % 40 == 0) {
+                } else {
+                    // Прилетел в гнездо: выключаем полёт и зависание, плавно сажаем и укладываем спать!
                     setDragonBooleanState(entity, "setFlying", false);
                     setDragonBooleanState(entity, "setHovering", false);
-                    setDragonBooleanState(entity, "setSleeping", true);
+                    if (!entity.onGround()) {
+                        Vec3 m = entity.getDeltaMovement();
+                        entity.setDeltaMovement(m.x * 0.5D, -0.25D, m.z * 0.5D);
+                        entity.fallDistance = 0.0F;
+                    } else {
+                        dragonMob.getNavigation().stop();
+                        setDragonBooleanState(entity, "setSleeping", true);
+                    }
                 }
                 return;
             }
@@ -292,5 +304,3 @@ public class ModCompatibilityEvents {
             }
             pData.putInt("AxeDragonStuck", stuck);
         }
-    }
-}
