@@ -3,6 +3,7 @@ package com.axe.axeanimals.entity;
 import com.axe.axeanimals.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -17,6 +18,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -28,6 +30,7 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.navigation.WaterBoundPathNavigation;
+import net.minecraft.world.entity.animal.dolphin.Dolphin;
 import net.minecraft.world.entity.animal.fish.AbstractFish;
 import net.minecraft.world.entity.animal.fish.WaterAnimal;
 import net.minecraft.world.entity.animal.squid.Squid;
@@ -53,7 +56,7 @@ public class OrcaEntity extends WaterAnimal {
 
     @Nullable
     private UUID ownerUUID;
-    private int breachCooldown = 180;
+    private int breachCooldown = 600;
     private int breedCooldown = 0;
     private int babyGrowTicks = 0;
 
@@ -77,8 +80,7 @@ public class OrcaEntity extends WaterAnimal {
     }
 
     public static boolean checkOrcaSpawnRules(EntityType<OrcaEntity> type, ServerLevelAccessor level, EntitySpawnReason reason, BlockPos pos, RandomSource random) {
-        if (!level.getFluidState(pos).is(FluidTags.WATER)) return false;
-        return level.getFluidState(pos.below(3)).is(FluidTags.WATER);
+        return level.getFluidState(pos).is(FluidTags.WATER);
     }
 
     @Override
@@ -141,20 +143,28 @@ public class OrcaEntity extends WaterAnimal {
             }
         }.setAlertOthers());
 
-        // Прирученная косатка защищает хозяина только в воде (не выбрасывается на берег)
+        // Прирученная косатка защищает хозяина только в воде
         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Monster.class, 20, true, false,
                 (target, lvl) -> this.isTamedOrca() && target.isInWater()));
 
         // Дикая косатка нападает на игрока в воде (если в руках нет Раковины наутилуса)
-        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, 40, true, false,
+        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, 50, true, false,
                 (target, lvl) -> !this.isTamedOrca() && !this.isBaby() && target.isInWater()
                         && target instanceof Player p && !p.isCreative() && !p.isSpectator()
                         && !p.getMainHandItem().is(Items.NAUTILUS_SHELL) && !p.getOffhandItem().is(Items.NAUTILUS_SHELL)));
 
-        this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Drowned.class, 120, true, false,
+        // Охота на тюленей (harp seal и любые моды с seal), дельфинов, скатов и китят
+        this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 160, true, false,
+                (target, lvl) -> !this.isTamedOrca() && !this.isBaby() && target != this && !(target instanceof OrcaEntity)
+                        && (target instanceof Dolphin
+                        || target instanceof StingrayEntity
+                        || (target instanceof WhaleEntity w && w.isBaby())
+                        || BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).getPath().contains("seal"))));
+
+        this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Drowned.class, 120, true, false,
                 (target, lvl) -> target.isInWater()));
-        this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Squid.class, 180, true, false, null));
-        this.targetSelector.addGoal(6, new NearestAttackableTargetGoal<>(this, AbstractFish.class, 240, true, false,
+        this.targetSelector.addGoal(6, new NearestAttackableTargetGoal<>(this, Squid.class, 180, true, false, null));
+        this.targetSelector.addGoal(7, new NearestAttackableTargetGoal<>(this, AbstractFish.class, 260, true, false,
                 (target, lvl) -> !this.isBaby() && !this.isTamedOrca() && !(target instanceof StingrayEntity)));
     }
 
@@ -162,7 +172,6 @@ public class OrcaEntity extends WaterAnimal {
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // Приручение редкой Раковиной наутилуса (Items.NAUTILUS_SHELL)
         if (!this.isTamedOrca() && stack.is(Items.NAUTILUS_SHELL)) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -178,7 +187,6 @@ public class OrcaEntity extends WaterAnimal {
             return InteractionResult.SUCCESS;
         }
 
-        // Кормление, лечение и размножение лососем или треской
         if (!this.isBaby() && (stack.is(Items.SALMON) || stack.is(Items.COD)) && this.breedCooldown == 0) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -208,17 +216,20 @@ public class OrcaEntity extends WaterAnimal {
                 if (this.babyGrowTicks == 0) this.setBabyOrca(false);
             }
 
-
             int bTicks = this.entityData.get(BREACH_TICKS);
             if (bTicks != 0) {
                 this.entityData.set(BREACH_TICKS, bTicks - 1);
-                if (Float.compare(bTicks, 35.0F) == 1) {
+                if (Float.compare(bTicks, 28.0F) == 1) {
+                    Vec3 look = this.getLookAngle();
                     Vec3 m = this.getDeltaMovement();
-                    this.setDeltaMovement(m.x, Math.max(m.y, 0.58D), m.z);
+                    this.setDeltaMovement(look.x * 1.15D, Math.max(m.y, 0.62D), look.z * 1.15D);
+                } else if (Float.compare(bTicks, 12.0F) == 1) {
+                    Vec3 look = this.getLookAngle();
+                    Vec3 m = this.getDeltaMovement();
+                    this.setDeltaMovement(look.x * 1.05D, m.y, look.z * 1.05D);
                 }
             }
 
-            // Прирученная косатка плывёт за хозяином только пока сам хозяин в воде
             if (this.isTamedOrca()) {
                 Player owner = this.getOwnerPlayer();
                 if (owner != null && owner.isInWater() && this.getTarget() == null && this.tickCount % 15 == 0) {
@@ -234,32 +245,25 @@ public class OrcaEntity extends WaterAnimal {
                 if (!pod.isEmpty()) {
                     OrcaEntity leader = pod.getFirst();
                     if (Double.compare(this.distanceToSqr(leader), 120.0D) == 1) {
-                        this.getNavigation().moveTo(leader, 1.2D);
+                        this.getNavigation().moveTo(leader, 1.35D);
                     }
                 }
             }
 
-            boolean deepEnough = this.level().getFluidState(this.blockPosition().below(2)).is(FluidTags.WATER);
+            // Прыжок выполняется ТОЛЬКО у самой поверхности воды (чтобы вылетать из воды в воздух, а не прыгать на глубине)
+            boolean nearSurface = !this.level().getFluidState(this.blockPosition().above(2)).is(FluidTags.WATER);
+            boolean deepEnough = this.level().getFluidState(this.blockPosition().below(3)).is(FluidTags.WATER);
             if (this.breachCooldown != 0) {
                 this.breachCooldown--;
-            } else if (this.isInWater() && deepEnough && this.getTarget() == null) {
+            } else if (this.isInWater() && nearSurface && deepEnough && this.getTarget() == null) {
                 Vec3 look = this.getLookAngle();
-                this.setDeltaMovement(look.x * 0.65D, 1.05D, look.z * 0.65D);
+                this.setDeltaMovement(look.x * 1.15D, 1.05D, look.z * 1.15D);
                 this.entityData.set(BREACH_TICKS, 40);
-                this.breachCooldown = 340 + this.random.nextInt(280);
+                this.breachCooldown = 1400 + this.random.nextInt(1200);
                 this.playSound(SoundEvents.DOLPHIN_SPLASH, 1.5F, 0.65F);
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.8, this.getZ(), 45, 2.0, 0.5, 2.0, 0.25);
             }
         }
-    }
-
-    @Nullable
-    @Override
-    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
-        if (!this.isBaby() && reason == EntitySpawnReason.NATURAL) {
-            this.getPersistentData().putBoolean("NeedsPodSpawn", true);
-        }
-        return super.finalizeSpawn(level, difficulty, reason, spawnData);
     }
 
     @Nullable
