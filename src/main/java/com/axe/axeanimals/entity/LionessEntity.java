@@ -134,7 +134,7 @@ public class LionessEntity extends TamableAnimal {
                 this.setSprinting(this.getTarget() != null);
                 if (!this.isInWater() && this.onGround() && !this.isOrderedToSit()
                         && this.entityData.get(STRETCH_TICKS) == 0 && this.random.nextInt(320) == 0) {
-                    this.sprintTicks = 130 + this.random.nextInt(70);
+                    this.sprintTicks = 75 + this.random.nextInt(35);
                 }
             }
         }
