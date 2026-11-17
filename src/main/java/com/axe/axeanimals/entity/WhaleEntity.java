@@ -51,9 +51,10 @@ public class WhaleEntity extends WaterAnimal {
     public final AnimationState feedingState = new AnimationState();
 
     private int pregnancyTicks = 0;
+    private int songTicks = 0;
     private int babyGrowTicks = 0;
     private static final int MAX_GROW_TICKS = 60000;
-    private int breachCooldown = 220;
+    private int breachCooldown = 600;
     private int escortTicks = 0;
     private int escortCooldown = 0;
 
@@ -62,7 +63,6 @@ public class WhaleEntity extends WaterAnimal {
         this.moveControl = new SmoothSwimmingMoveControl(this, 35, 4, 0.02F, 0.1F, true);
         this.lookControl = new SmoothSwimmingLookControl(this, 8);
     }
-
     public static AttributeSupplier.Builder createAttributes() {
         return WaterAnimal.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 110.0D)
@@ -85,16 +85,9 @@ public class WhaleEntity extends WaterAnimal {
                 break;
             }
         }
-        if (depth != 6) return false;
-        for (int dx = -10; dx != 15; dx += 5) {
-            for (int dz = -10; dz != 15; dz += 5) {
-                if (!level.getFluidState(pos.offset(dx, -1, dz)).is(FluidTags.WATER)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return depth == 6;
     }
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
@@ -116,7 +109,7 @@ public class WhaleEntity extends WaterAnimal {
     public float getBreachProgress() {
         int ticks = this.entityData.get(BREACH_TICKS);
         if (ticks == 0) return 0.0F;
-        return (float) (50 - ticks) / 50.0F;
+        return (float) (90 - ticks) / 90.0F;
     }
 
     public float getFeedingProgress() {
@@ -169,7 +162,6 @@ public class WhaleEntity extends WaterAnimal {
     public float getSoundVolume() {
         return 1.8F;
     }
-
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
@@ -177,9 +169,10 @@ public class WhaleEntity extends WaterAnimal {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 this.pregnancyTicks = 30000;
+                this.songTicks = 200;
                 this.entityData.set(FEEDING_TICKS, 60);
                 this.playSound(SoundEvents.DOLPHIN_EAT, 1.2F, 0.45F);
-                ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 2.0, this.getZ(), 7, 1.2, 0.6, 1.2, 0.05);
+                ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 2.0, this.getZ(), 10, 1.4, 0.7, 1.4, 0.05);
             }
             return InteractionResult.SUCCESS;
         }
@@ -190,7 +183,7 @@ public class WhaleEntity extends WaterAnimal {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
-            if (this.tickCount == 5 && this.getPersistentData().getBooleanOr("NeedsNaturalCalf", false)) {
+            if (!this.level().players().isEmpty() && this.tickCount >= 5 && this.getPersistentData().getBooleanOr("NeedsNaturalCalf", false)) {
                 this.getPersistentData().remove("NeedsNaturalCalf");
                 WhaleEntity calf = ModEntities.WHALE.get().create(this.level(), EntitySpawnReason.NATURAL);
                 if (calf != null) {
@@ -259,15 +252,27 @@ public class WhaleEntity extends WaterAnimal {
                     }
                 }
             }
+            if (this.songTicks != 0) {
+                this.songTicks--;
+                if (this.songTicks % 25 == 0) {
+                    float pitch = 0.32F + (this.songTicks % 50 == 0 ? 0.08F : 0.0F);
+                    this.playSound(SoundEvents.DOLPHIN_AMBIENT_WATER, 2.2F, pitch);
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.NOTE, this.getX(), this.getY() + 2.4, this.getZ(), 4, 1.2, 0.4, 1.2, 0.05);
+                }
+            }
 
             if (this.pregnancyTicks != 0) {
                 this.pregnancyTicks--;
+                if (this.tickCount % 80 == 0) {
+                    ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 2.3, this.getZ(), 3, 1.2, 0.4, 1.2, 0.02);
+                }
                 if (this.pregnancyTicks == 0) {
                     WhaleEntity calf = ModEntities.WHALE.get().create(this.level(), EntitySpawnReason.BREEDING);
                     if (calf != null) {
                         calf.setBabyWhale(true);
                         calf.snapTo(this.getX() + 3.0, this.getY(), this.getZ() + 3.0, this.getYRot(), 0);
                         this.level().addFreshEntity(calf);
+                        ((ServerLevel) this.level()).sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 2.2, this.getZ(), 16, 1.6, 0.8, 1.6, 0.05);
                     }
                 }
             }
@@ -283,7 +288,6 @@ public class WhaleEntity extends WaterAnimal {
                     sl.sendParticles(ParticleTypes.CLOUD, bx, by + h * 0.55D, bz, 2, 0.18D + h * 0.06D, 0.15D, 0.18D + h * 0.06D, 0.03D);
                 }
                 this.playSound(SoundEvents.DOLPHIN_SPLASH, 1.6F, 0.55F);
-
             }
 
             if (this.escortCooldown != 0) this.escortCooldown--;
@@ -316,9 +320,14 @@ public class WhaleEntity extends WaterAnimal {
                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.8, this.getZ(), 24, 0.6, 0.8, 0.6, 0.15);
             }
 
-            if (bTicks != 0 && Float.compare(bTicks, 44.0F) == 1) {
+            if (bTicks != 0) {
+                Vec3 look = this.getLookAngle();
                 Vec3 m = this.getDeltaMovement();
-                this.setDeltaMovement(m.x, Math.max(m.y, 0.68D), m.z);
+                if (Float.compare(bTicks, 72.0F) == 1) {
+                    this.setDeltaMovement(look.x * 1.15D, Math.max(m.y, 0.55D), look.z * 1.15D);
+                } else if (Float.compare(bTicks, 45.0F) == 1) {
+                    this.setDeltaMovement(look.x * 1.05D, m.y, look.z * 1.05D);
+                }
             }
 
             boolean nearSurface = !this.level().getFluidState(this.blockPosition().above(2)).is(FluidTags.WATER);
@@ -331,8 +340,8 @@ public class WhaleEntity extends WaterAnimal {
                 var tooCloseBoats = this.level().getEntitiesOfClass(Boat.class, this.getBoundingBox().inflate(5.2D));
                 if (tooCloseBoats.isEmpty()) {
                     Vec3 look = this.getLookAngle();
-                    this.setDeltaMovement(look.x * 1.05D, 1.38D, look.z * 1.05D);
-                    this.entityData.set(BREACH_TICKS, 50);
+                    this.setDeltaMovement(look.x * 1.15D, 1.05D, look.z * 1.15D);
+                    this.entityData.set(BREACH_TICKS, 90);
                     this.breachCooldown = (this.escortTicks != 0) ? (850 + this.random.nextInt(300)) : (1800 + this.random.nextInt(1400));
                     this.playSound(SoundEvents.GENERIC_SPLASH, 2.2F, 0.45F);
                     ((ServerLevel) this.level()).sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 1.2, this.getZ(), 75, 3.2, 0.8, 3.2, 0.30);
@@ -340,7 +349,6 @@ public class WhaleEntity extends WaterAnimal {
             }
         }
     }
-
 
     @Nullable
     @Override
