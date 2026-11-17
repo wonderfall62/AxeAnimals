@@ -1,11 +1,13 @@
 package com.axe.axeanimals.compat;
 
 import com.axe.axeanimals.entity.WhaleEntity;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -14,6 +16,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.dolphin.Dolphin;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
@@ -70,7 +73,7 @@ public class ModCompatibilityEvents {
     @SubscribeEvent
     public static void onEntityTick(EntityTickEvent.Post event) {
         Entity entity = event.getEntity();
-        if (entity.level().isClientSide()) return;
+        if (entity.level().isClientSide() || entity.level().players().isEmpty()) return;
 
         if (entity instanceof Dolphin dolphin) {
             int cd = dolphin.getPersistentData().getIntOr("AxeBreedCD", 0);
@@ -117,22 +120,55 @@ public class ModCompatibilityEvents {
             return;
         }
 
+        // Спасение драконов Ice and Fire: в воде не тонут, а если застряли в блоках гнезда/леса — пробивают выход и взлетают
         if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
-            if (path.contains("ice")) {
-                if (entity.isInWater()) {
-                    Vec3 m = entity.getDeltaMovement();
-                    if (Double.compare(m.horizontalDistanceSqr(), 0.02D) == -1) {
-                        Vec3 look = entity.getLookAngle().scale(0.35D);
-                        entity.setDeltaMovement(look.x, -0.05D, look.z);
+            if (entity.isVehicle()) return;
+
+            if (path.contains("ice") && entity.isInWater()) {
+                Vec3 m = entity.getDeltaMovement();
+                if (Double.compare(m.horizontalDistanceSqr(), 0.02D) == -1) {
+                    Vec3 look = entity.getLookAngle().scale(0.35D);
+                    entity.setDeltaMovement(look.x, -0.05D, look.z);
+                }
+                return;
+            }
+
+            boolean overWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(2)).isEmpty();
+            if (overWater && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.008D) == -1) {
+                Vec3 look = entity.getLookAngle().scale(0.45D);
+                entity.setDeltaMovement(look.x, 0.35D, look.z);
+                return;
+            }
+
+            // Проверка застревания в стенах/потолке гнезда или кронах деревьев
+            int stuck = entity.getPersistentData().getIntOr("AxeDragonStuck", 0);
+            boolean barelyMoving = Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.004D) == -1;
+            if (barelyMoving) {
+                stuck++;
+                if (stuck >= 80) {
+                    stuck = 0;
+                    BlockPos center = entity.blockPosition();
+                    for (int dx = -4; dx <= 4; dx++) {
+                        for (int dy = 1; dy <= 7; dy++) {
+                            for (int dz = -4; dz <= 4; dz++) {
+                                BlockPos bp = center.offset(dx, dy, dz);
+                                BlockState bs = entity.level().getBlockState(bp);
+                                if (bs.isAir()) continue;
+                                String bPath = BuiltInRegistries.BLOCK.getKey(bs.getBlock()).getPath();
+                                if (bs.is(BlockTags.LEAVES) || bs.is(BlockTags.LOGS) || bs.is(BlockTags.SNOW)
+                                        || bPath.contains("charred") || bPath.contains("frozen") || bPath.contains("crackled") || bPath.contains("ash")) {
+                                    entity.level().destroyBlock(bp, false);
+                                }
+                            }
+                        }
                     }
+                    Vec3 look = entity.getLookAngle().scale(0.55D);
+                    entity.setDeltaMovement(look.x, 0.55D, look.z);
                 }
             } else {
-                boolean overWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(2)).isEmpty();
-                if (overWater && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.008D) == -1) {
-                    Vec3 look = entity.getLookAngle().scale(0.45D);
-                    entity.setDeltaMovement(look.x, 0.35D, look.z);
-                }
+                stuck = 0;
             }
+            entity.getPersistentData().putInt("AxeDragonStuck", stuck);
         }
     }
 }
