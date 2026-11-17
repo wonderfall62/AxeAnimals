@@ -55,86 +55,119 @@ public class AxeAnimalsClient {
             float speed = Math.min(state.walkAnimationSpeed, 1.0F);
             float age = state.ageInTicks;
 
-            if (animalType.equals("ferret") && this.rootPart.hasChild("body")) {
-                ModelPart body = this.rootPart.getChild("body");
-                if (state.isStanding && !state.isInWater) {
-                    body.y -= 1.35F;
-                    body.xRot = -1.25F;
-                    if (body.hasChild("leg_fl")) {
-                        body.getChild("leg_fl").xRot = 1.15F;
-                        body.getChild("leg_fl").zRot = -0.25F;
-                    }
-                    if (body.hasChild("leg_fr")) {
-                        body.getChild("leg_fr").xRot = 1.15F;
-                        body.getChild("leg_fr").zRot = 0.25F;
-                    }
-                    if (body.hasChild("hip")) {
-                        ModelPart hip = body.getChild("hip");
-                        hip.xRot = 0.15F;
-                        if (hip.hasChild("leg_bl")) hip.getChild("leg_bl").xRot = 1.10F;
-                        if (hip.hasChild("leg_br")) hip.getChild("leg_br").xRot = 1.10F;
-                        if (hip.hasChild("tail_base")) {
-                            hip.getChild("tail_base").xRot = 1.10F;
-                            if (hip.getChild("tail_base").hasChild("tail_tip")) {
-                                hip.getChild("tail_base").getChild("tail_tip").xRot = 0.20F;
-                            }
-                        }
-                    }
-                    if (body.hasChild("neck")) {
-                        ModelPart neck = body.getChild("neck");
-                        neck.xRot = 0.65F;
-                        if (neck.hasChild("head")) {
-                            ModelPart head = neck.getChild("head");
-                            head.xRot = 0.60F + state.xRot * ((float) Math.PI / 180F) * 0.4F;
-                            head.yRot = Mth.sin(age * 0.14F) * 0.35F;
-                        }
-                    }
-                } else {
-                    float fPos = t * 1.25F;
-                    float fSpeed = state.isInWater ? 0.65F : Math.min(speed * 1.35F, 1.1F);
-                    float wave = Mth.sin(fPos * 0.85F);
-                    body.y += state.isInWater ? 1.5F : (-Math.abs(wave) * 0.55F * fSpeed);
-                    body.xRot = wave * 0.14F * fSpeed;
+                        if (animalType.equals("ferret") && this.rootPart.hasChild("Body")) {
+                ModelPart body = this.rootPart.getChild("Body");
+                ModelPart chest = body.getChild("Chest");
+                ModelPart neck = chest.getChild("Neck");
+                ModelPart head = neck.getChild("Head");
+                ModelPart hips = body.getChild("Hips");
+                ModelPart tail1 = hips.getChild("Tail1");
+                ModelPart tail2 = tail1.getChild("Tail2");
 
-                    if (body.hasChild("leg_fl")) {
-                        ModelPart fl = body.getChild("leg_fl");
-                        fl.y += 0.35F;
-                        fl.xRot = Mth.cos(fPos * 0.85F) * 0.72F * fSpeed;
-                    }
-                    if (body.hasChild("leg_fr")) {
-                        ModelPart fr = body.getChild("leg_fr");
-                        fr.y += 0.35F;
-                        fr.xRot = Mth.cos(fPos * 0.85F + 0.5F) * 0.72F * fSpeed;
-                    }
-                    if (body.hasChild("neck")) {
-                        ModelPart neck = body.getChild("neck");
-                        neck.xRot = -wave * 0.12F * fSpeed;
-                        if (neck.hasChild("head")) {
-                            neck.getChild("head").xRot = state.xRot * ((float) Math.PI / 180F) * 0.6F;
-                            neck.getChild("head").yRot = state.yRot * ((float) Math.PI / 180F) * 0.6F;
-                        }
-                    }
-                    if (body.hasChild("hip")) {
-                        ModelPart hip = body.getChild("hip");
-                        hip.xRot = -wave * 0.20F * fSpeed;
-                        if (hip.hasChild("leg_bl")) {
-                            ModelPart bl = hip.getChild("leg_bl");
-                            bl.y += 0.35F;
-                            bl.xRot = Mth.cos(fPos * 0.85F + (float) Math.PI) * 0.72F * fSpeed;
-                        }
-                        if (hip.hasChild("leg_br")) {
-                            ModelPart br = hip.getChild("leg_br");
-                            br.y += 0.35F;
-                            br.xRot = Mth.cos(fPos * 0.85F + (float) Math.PI + 0.5F) * 0.72F * fSpeed;
-                        }
-                        if (hip.hasChild("tail_base")) {
-                            ModelPart tb = hip.getChild("tail_base");
-                            tb.yRot = Mth.sin(age * 0.18F + fPos * 0.5F) * 0.30F;
-                            if (tb.hasChild("tail_tip")) tb.getChild("tail_tip").yRot = Mth.sin(age * 0.18F + fPos * 0.5F - 0.7F) * 0.45F;
-                        }
-                    }
+                ModelPart abl = chest.getChild("ArmBaseLeft");
+                ModelPart al = abl.getChild("ArmLeft");
+                ModelPart hl = al.getChild("HandLeft");
+
+                ModelPart abr = chest.getChild("ArmBaseRight");
+                ModelPart ar = abr.getChild("ArmRight");
+                ModelPart hr = ar.getChild("HandRight");
+
+                ModelPart tl = hips.getChild("ThighLeft");
+                ModelPart ll = tl.getChild("LegLeft");
+                ModelPart fl = ll.getChild("FootLeft");
+
+                ModelPart tr = hips.getChild("ThighRight");
+                ModelPart lr = tr.getChild("LegRight");
+                ModelPart fr = lr.getChild("FootRight");
+
+                if (state.isStanding && !state.isInWater) {
+                    body.y = 14.2F;
+                    body.xRot = -0.95F;
+                    chest.xRot = -0.15F;
+                    hips.xRot = 0.55F;
+                    neck.xRot = 0.25F;
+                    head.xRot = 0.95F;
+                    head.yRot = Mth.sin(age * 0.14F) * 0.35F;
+                    abl.xRot = 1.25F;
+                    abr.xRot = 1.25F;
+                    tl.xRot = 0.65F;
+                    tr.xRot = 0.65F;
+                    tail1.xRot = 0.35F;
+                    tail2.xRot = 0.25F;
+                } else if (Float.compare(speed, 0.08F) == -1 && !state.isInWater) {
+                    float sp = 1.0F;
+                    float deg = 1.0F;
+                    float sw = age * 0.65F;
+                    body.y = 18.1F;
+                    body.xRot = 0.18325958F;
+                    chest.xRot = -0.54105204F;
+                    hips.xRot = -0.43633232F;
+                    neck.xRot = Mth.cos(sw * sp * 0.1F) * deg * 0.1F * 0.5F - 0.77F;
+                    head.xRot = Mth.cos(1.0F + sw * sp * 0.1F) * deg * -0.1F * 0.5F + 1.22F + state.xRot * ((float) Math.PI / 180F) * 0.5F;
+                    neck.yRot = state.yRot * ((float) Math.PI / 180F) * 0.5F;
+                    head.yRot = state.yRot * ((float) Math.PI / 180F) * 0.5F;
+                    tail1.xRot = Mth.cos(3.0F + sw * sp * 0.1F) * deg * -0.1F * 0.5F + 0.03F;
+                    tail2.xRot = Mth.cos(1.0F + sw * sp * 0.1F) * deg * -0.1F * 0.5F + 0.2F;
+                } else if (Float.compare(speed, 0.45F) == 1 && !state.isInWater) {
+                    float sp = 1.5F;
+                    float deg = 0.5F;
+                    float lSwing = t;
+                    float lAmt = Math.min(1.0F, speed);
+
+                    abr.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * 5.0F) * lAmt * 0.5F + 0.3F;
+                    ar.xRot = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F - 0.4F;
+                    hr.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F;
+
+                    abl.xRot = Mth.cos(1.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 5.0F) * lAmt * 0.5F + 0.3F;
+                    al.xRot = Mth.cos(lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F - 0.4F;
+                    hl.xRot = Mth.cos(7.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F;
+
+                    tl.xRot = Mth.cos(3.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 3.0F) * lAmt * 0.5F;
+                    ll.xRot = Mth.cos(4.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F + 0.4F;
+                    tr.xRot = Mth.cos(4.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 3.0F) * lAmt * 0.5F;
+                    lr.xRot = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -3.0F) * lAmt * 0.5F + 0.4F;
+
+                    body.xRot = Mth.cos(6.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -0.6F) * lAmt * 0.5F + 0.3F;
+                    hips.xRot = Mth.cos(3.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 0.5F) * lAmt * 0.5F - 0.4F;
+                    chest.xRot = Mth.cos(5.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 0.6F) * lAmt * 0.5F - 0.7F;
+                    neck.xRot = Mth.cos(4.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * -0.6F) * lAmt * 0.5F - 0.6F;
+                    tail1.xRot = Mth.cos(2.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 2.0F) * lAmt * 0.5F;
+                    tail2.xRot = Mth.cos(6.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 3.0F) * lAmt * 0.5F;
+                    body.y = Mth.cos(2.0F + lSwing * sp * 0.3F + (float) Math.PI) * (deg * 0.5F) * lAmt * 0.5F - 0.02F + 18.1F;
+                } else {
+                    float sp = state.isInWater ? 2.0F : 1.5F;
+                    float deg = 0.5F;
+                    float lSwing = state.isInWater ? age : t;
+                    float lAmt = state.isInWater ? 0.3F : speed;
+
+                    abl.xRot = Mth.cos(1.5F + lSwing * sp * 0.2F) * deg * 1.5F * lAmt + 0.6F;
+                    al.xRot = Mth.cos(5.5F + lSwing * sp * 0.2F) * deg * -1.0F * lAmt - 0.47F;
+                    hl.xRot = Mth.cos(1.5F + lSwing * sp * 0.2F) * deg * -1.5F * lAmt + 0.18F;
+
+                    abr.xRot = Mth.cos(1.5F + lSwing * sp * 0.2F) * deg * -1.5F * lAmt + 0.6F;
+                    ar.xRot = Mth.cos(5.5F + lSwing * sp * 0.2F) * deg * 1.0F * lAmt - 0.47F;
+                    hr.xRot = Mth.cos(1.5F + lSwing * sp * 0.2F) * deg * 1.5F * lAmt + 0.18F;
+
+                    tl.xRot = Mth.cos(lSwing * sp * 0.2F) * deg * 1.5F * lAmt - 0.1F;
+                    ll.xRot = Mth.cos(4.0F + lSwing * sp * 0.2F) * deg * 1.5F * lAmt + 0.7F;
+                    fl.xRot = Mth.cos(-5.0F + lSwing * sp * 0.2F) * deg * 0.5F * lAmt - 0.34F;
+
+                    tr.xRot = Mth.cos(lSwing * sp * 0.2F) * deg * -1.5F * lAmt - 0.1F;
+                    lr.xRot = Mth.cos(4.0F + lSwing * sp * 0.2F) * deg * -1.5F * lAmt + 0.7F;
+                    fr.xRot = Mth.cos(-5.0F + lSwing * sp * 0.2F) * deg * -0.5F * lAmt - 0.34F;
+
+                    body.y = state.isInWater ? 19.5F : 18.1F;
+                    body.xRot = Mth.cos(1.5F + lSwing * sp * 0.4F) * deg * -0.2F * lAmt + 0.18F;
+                    chest.xRot = Mth.cos(1.5F + lSwing * sp * 0.4F) * deg * 0.2F * lAmt - 0.54F;
+                    hips.xRot = Mth.cos(7.0F + lSwing * sp * 0.4F) * deg * 0.2F * lAmt - 0.44F;
+                    neck.xRot = Mth.cos(lSwing * sp * 0.4F) * deg * -0.1F * lAmt - 0.72F;
+                    head.xRot = Mth.cos(4.0F + lSwing * sp * 0.4F) * deg * -0.1F * lAmt + 1.22F + state.xRot * ((float) Math.PI / 180F) * 0.5F;
+                    neck.yRot = state.yRot * ((float) Math.PI / 180F) * 0.5F;
+                    head.yRot = state.yRot * ((float) Math.PI / 180F) * 0.5F;
+                    tail2.xRot = Mth.cos(lSwing * sp * 0.4F) * deg * -0.2F * lAmt + 0.15F;
                 }
             }
+
             else if (animalType.equals("whale") && this.rootPart.hasChild("body")) {
                 ModelPart body = this.rootPart.getChild("body");
                 float swim = age * 0.065F + t * 0.22F;
