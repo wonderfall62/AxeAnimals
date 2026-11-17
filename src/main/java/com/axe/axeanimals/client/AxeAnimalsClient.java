@@ -367,8 +367,7 @@ public class AxeAnimalsClient {
                     tail4.xRot = -0.10F;
                 } else {
                     body.xRot = Mth.lerp(blend, Mth.cos(swimPos * 0.3F + (float) Math.PI) * 0.28F * swimAmp, arcPitch);
-                    body.y = 10.5F + Mth.sin(swimPos * 0.3
-F) * 0.85F * (1.0F - blend * 0.7F);
+                    body.y = 10.5F + Mth.sin(swimPos * 0.3F) * 0.85F * (1.0F - blend * 0.7F);
                     chest.xRot = 0.1396F + Mth.cos(6.0F + swimPos * 0.3F + (float) Math.PI) * -0.32F * swimAmp;
                     tail1.xRot = -0.0873F + Mth.cos(1.0F + swimPos * 0.3F + (float) Math.PI) * (-0.65F * swimAmp - 0.22F * blend);
                     tail2.xRot = -0.0524F + Mth.cos(swimPos * 0.3F + (float) Math.PI) * (-0.45F * swimAmp - 0.22F * blend);
