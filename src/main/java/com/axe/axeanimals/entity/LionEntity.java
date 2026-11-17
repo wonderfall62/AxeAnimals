@@ -149,8 +149,8 @@ public class LionEntity extends TamableAnimal {
             } else {
                 this.setSprinting(this.getTarget() != null);
                 if (!this.isInWater() && this.onGround() && !this.isOrderedToSit()
-                        && this.entityData.get(ROAR_TICKS) == 0 && this.random.nextInt(360) == 0) {
-                    this.sprintTicks = 130 + this.random.nextInt(70);
+                        && this.entityData.get(ROAR_TICKS) == 0 && this.random.nextInt(1500) == 0) {
+                    this.sprintTicks = 75 + this.random.nextInt(35);
                 }
             }
         }
