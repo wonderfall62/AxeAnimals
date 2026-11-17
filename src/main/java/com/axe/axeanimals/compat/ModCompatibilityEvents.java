@@ -123,18 +123,23 @@ public class ModCompatibilityEvents {
             }
         }
     }
-    private static void triggerIceAndFireDragonFlight(Entity dragon) {
+    private static void setDragonBooleanState(Entity dragon, String methodName, boolean value) {
         try {
             for (Method m : dragon.getClass().getMethods()) {
-                String name = m.getName();
-                if ((name.equals("setFlying") || name.equals("setHovering")) && m.getParameterCount() == 1 && m.getParameterTypes()[0] == boolean.class) {
-                    m.invoke(dragon, true);
-                } else if ((name.equals("setSleeping") || name.equals("setOrderedToSit") || name.equals("setModelDead")) && m.getParameterCount() == 1 && m.getParameterTypes()[0] == boolean.class) {
-                    m.invoke(dragon, false);
+                if (m.getName().equals(methodName) && m.getParameterCount() == 1 && m.getParameterTypes()[0] == boolean.class) {
+                    m.invoke(dragon, value);
                 }
             }
         } catch (Exception ignored) {
         }
+    }
+
+    private static void triggerIceAndFireDragonFlight(Entity dragon) {
+        setDragonBooleanState(dragon, "setSleeping", false);
+        setDragonBooleanState(dragon, "setOrderedToSit", false);
+        setDragonBooleanState(dragon, "setModelDead", false);
+        setDragonBooleanState(dragon, "setFlying", true);
+        setDragonBooleanState(dragon, "setHovering", true);
     }
 
     @SubscribeEvent
@@ -213,23 +218,53 @@ public class ModCompatibilityEvents {
         if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
             if (entity.isVehicle()) return;
 
-            // Если дракон в воде или над водой — переключаем родной режим полёта Ice and Fire (с взмахами крыльев!)
-            boolean overWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(2)).isEmpty();
-            if (overWater && entity.tickCount % 20 == 0) {
+            // Запоминаем координаты родного логова при появлении дракона
+            var pData = entity.getPersistentData();
+            if (!pData.contains("AxeHomeX")) {
+                pData.putDouble("AxeHomeX", entity.getX());
+                pData.putDouble("AxeHomeY", entity.getY());
+                pData.putDouble("AxeHomeZ", entity.getZ());
+            }
+
+            // 1. Вытаскиваем дракона из воды и поднимаем выше поверхности океана
+            boolean inOrNearWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(3)).isEmpty();
+            if (inOrNearWater) {
                 triggerIceAndFireDragonFlight(entity);
                 Vec3 look = entity.getLookAngle();
-                entity.setDeltaMovement(look.x * 0.45D, 0.48D, look.z * 0.45D);
+                entity.setDeltaMovement(look.x * 0.55D, 0.58D, look.z * 0.55D);
+                entity.fallDistance = 0.0F;
                 return;
             }
 
-            // Периодический естественный взлёт дикого дракона через родной ИИ Ice and Fire
-            if (entity.onGround() && entity.tickCount % 240 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
+            // 2. Ночной возврат дикого дракона в родное гнездо и сон в логове
+            boolean isNight = !entity.level().isBrightOutside();
+            if (isNight && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
+                double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
+                double hy = pData.getDoubleOr("AxeHomeY", entity.getY());
+                double hz = pData.getDoubleOr("AxeHomeZ", entity.getZ());
+                double distSq = entity.distanceToSqr(hx, hy, hz);
+
+                if (Double.compare(distSq, 196.0D) == 1) {
+                    if (entity.tickCount % 30 == 0) {
+                        triggerIceAndFireDragonFlight(entity);
+                        dragonMob.getNavigation().moveTo(hx, hy + 3.0D, hz, 1.35D);
+                    }
+                } else if (entity.onGround() && entity.tickCount % 40 == 0) {
+                    setDragonBooleanState(entity, "setFlying", false);
+                    setDragonBooleanState(entity, "setHovering", false);
+                    setDragonBooleanState(entity, "setSleeping", true);
+                }
+                return;
+            }
+
+            // 3. Днём: пробуждение и периодический естественный взлёт
+            if (!isNight && entity.onGround() && entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
                 triggerIceAndFireDragonFlight(entity);
                 return;
             }
 
-            // Если дракон застрял в листве/бревнах — расчищаем ветки и включаем родной полёт
-            int stuck = entity.getPersistentData().getIntOr("AxeDragonStuck", 0);
+            // 4. Расчистка листвы/веток, если дракон застрял в кронах деревьев
+            int stuck = pData.getIntOr("AxeDragonStuck", 0);
             boolean barelyMoving = entity.onGround() && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1;
             if (barelyMoving) {
                 stuck++;
@@ -255,7 +290,7 @@ public class ModCompatibilityEvents {
             } else {
                 stuck = 0;
             }
-            entity.getPersistentData().putInt("AxeDragonStuck", stuck);
+            pData.putInt("AxeDragonStuck", stuck);
         }
     }
 }
