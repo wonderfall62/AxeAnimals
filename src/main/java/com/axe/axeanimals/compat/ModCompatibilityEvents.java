@@ -6,22 +6,27 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.dolphin.Dolphin;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.List;
 
@@ -47,6 +52,78 @@ public class ModCompatibilityEvents {
         }
     }
 
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        for (ServerLevel level : event.getServer().getAllLevels()) {
+            if (level.players().isEmpty() || level.getGameTime() % 200 != 0) continue;
+            for (ServerPlayer player : level.players()) {
+                if (player.isSpectator() || player.tickCount < 100) continue;
+                BlockPos pPos = player.blockPosition();
+                var biomeHolder = level.getBiome(pPos);
+                if (!biomeHolder.is(BiomeTags.IS_OCEAN)) continue;
+
+                AABB area = player.getBoundingBox().inflate(56.0D);
+                String biomePath = biomeHolder.unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+
+                // 1. Акулы (в любых океанах)
+                long sharksNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("shark")).size();
+                if (Float.compare(sharksNearby, 1.5F) == -1) {
+                    spawnMarineFromOtherMod(level, player, "shark", 1, 26.0D, 52.0D);
+                }
+
+                // 2. Нарвалы (ТОЛЬКО в холодных и ледяных океанах)
+                boolean isColdOcean = biomePath.contains("cold") || biomePath.contains("frozen");
+                if (isColdOcean) {
+                    long narwhalsNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("narwhal")).size();
+                    if (Float.compare(narwhalsNearby, 1.5F) == -1 && level.getRandom().nextBoolean()) {
+                        spawnMarineFromOtherMod(level, player, "narwhal", 2, 26.0D, 52.0D);
+                    }
+                }
+
+                // 3. Морские змеи / Левиафаны (редко в глубоких океанах)
+                if (biomePath.contains("deep")) {
+                    AABB wideArea = player.getBoundingBox().inflate(96.0D);
+                    long serpentsNearby = level.getEntities(player, wideArea, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("sea_serpent")).size();
+                    if (serpentsNearby == 0 && level.getRandom().nextInt(6) == 0) {
+                        spawnMarineFromOtherMod(level, player, "sea_serpent", 1, 45.0D, 75.0D);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void spawnMarineFromOtherMod(ServerLevel level, ServerPlayer player, String keyword, int count, double minDist, double maxDist) {
+        List<EntityType<?>> types = BuiltInRegistries.ENTITY_TYPE.stream()
+                .filter(t -> {
+                    Identifier tid = BuiltInRegistries.ENTITY_TYPE.getKey(t);
+                    return !tid.getNamespace().equals("minecraft") && tid.getPath().contains(keyword) && !tid.getPath().contains("egg");
+                })
+                .toList();
+        if (types.isEmpty()) return;
+
+        for (int attempt = 0; attempt != 8; attempt++) {
+            double angle = level.getRandom().nextDouble() * Math.PI * 2.0D;
+            double dist = minDist + level.getRandom().nextDouble() * (maxDist - minDist);
+            int sx = (int) (player.getX() + Math.cos(angle) * dist);
+            int sz = (int) (player.getZ() + Math.sin(angle) * dist);
+            int sy = Math.max(level.getMinY() + 6, (int) player.getY() - 5 + level.getRandom().nextInt(9));
+            BlockPos spawnPos = new BlockPos(sx, sy, sz);
+
+            if (level.isLoaded(spawnPos) && level.getFluidState(spawnPos).is(FluidTags.WATER) && level.getFluidState(spawnPos.below(2)).is(FluidTags.WATER)) {
+                EntityType<?> chosen = types.get(level.getRandom().nextInt(types.size()));
+                for (int i = 0; i != count; i++) {
+                    Entity mob = chosen.create(level, EntitySpawnReason.NATURAL);
+                    if (mob != null) {
+                        double ox = (level.getRandom().nextDouble() - 0.5D) * 4.0D;
+                        double oz = (level.getRandom().nextDouble() - 0.5D) * 4.0D;
+                        mob.snapTo(sx + 0.5D + ox, sy, sz + 0.5D + oz, level.getRandom().nextFloat() * 360.0F, 0.0F);
+                        level.addFreshEntity(mob);
+                    }
+                }
+                break;
+            }
+        }
+    }
     @SubscribeEvent
     public static void onDolphinInteract(PlayerInteractEvent.EntityInteract event) {
         if (!(event.getTarget() instanceof Dolphin dolphin) || dolphin.isBaby()) return;
@@ -120,7 +197,6 @@ public class ModCompatibilityEvents {
             return;
         }
 
-        // Спасение драконов Ice and Fire: в воде не тонут, а если застряли в блоках гнезда/леса — пробивают выход и взлетают
         if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
             if (entity.isVehicle()) return;
 
@@ -140,7 +216,22 @@ public class ModCompatibilityEvents {
                 return;
             }
 
-            // Проверка застревания в стенах/потолке гнезда или кронах деревьев
+            // Периодический взлёт диких драконов в небо (чтобы не ходили постоянно пешком)
+            int flightTimer = entity.getPersistentData().getIntOr("AxeDragonFlight", 0);
+            if (flightTimer != 0) {
+                entity.getPersistentData().putInt("AxeDragonFlight", flightTimer - 1);
+                Vec3 look = entity.getLookAngle();
+                double vy = Float.compare(flightTimer, 70.0F) == 1 ? 0.28D : 0.04D;
+                entity.setDeltaMovement(look.x * 0.52D, vy, look.z * 0.52D);
+                entity.fallDistance = 0.0F;
+                return;
+            } else if (entity.onGround() && !entity.isInWater() && entity.tickCount % 260 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
+                entity.getPersistentData().putInt("AxeDragonFlight", 110);
+                Vec3 look = entity.getLookAngle();
+                entity.setDeltaMovement(look.x * 0.48D, 0.62D, look.z * 0.48D);
+                return;
+            }
+
             int stuck = entity.getPersistentData().getIntOr("AxeDragonStuck", 0);
             boolean barelyMoving = Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.004D) == -1;
             if (barelyMoving) {
