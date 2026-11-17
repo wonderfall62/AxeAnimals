@@ -215,10 +215,9 @@ public class ModCompatibilityEvents {
             return;
         }
 
-            if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
+        if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
             if (entity.isVehicle()) return;
 
-            // 0. Запрещаем драконам охотиться на рыб и подводных мобов (чтобы не зависали над водой)
             if (entity instanceof Mob dragonMob && dragonMob.getTarget() != null && dragonMob.getTarget().isInWater()) {
                 dragonMob.setTarget(null);
             }
@@ -240,7 +239,23 @@ public class ModCompatibilityEvents {
                 return;
             }
 
-            // 2. Ночной возврат дикого дракона в родное гнездо, посадка и сон
+            // 2. В бою: против крупных врагов (циклопов и т.п.) дракон взлетает в воздух, а мелкую добычу кусает на земле!
+            if (entity instanceof Mob dragonMob && dragonMob.getTarget() != null) {
+                Entity target = dragonMob.getTarget();
+                String tPath = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).getPath();
+                boolean bigEnemy = Float.compare(target.getBbHeight(), 2.2F) == 1
+                        || tPath.contains("cyclops") || tPath.contains("troll") || tPath.contains("golem") || tPath.contains("dragon");
+
+                if (bigEnemy && entity.onGround() && entity.tickCount % 25 == 0) {
+                    triggerIceAndFireDragonFlight(entity);
+                    Vec3 away = entity.position().subtract(target.position()).normalize();
+                    entity.setDeltaMovement(away.x * 0.35D, 0.55D, away.z * 0.35D);
+                }
+                return;
+            }
+
+
+            // 3. Ночной возврат дикого дракона в родное гнездо, посадка и сон
             boolean isNight = !entity.level().isBrightOutside();
             if (isNight && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
                 double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
@@ -254,28 +269,30 @@ public class ModCompatibilityEvents {
                         dragonMob.getNavigation().moveTo(hx, hy + 2.0D, hz, 1.35D);
                     }
                 } else {
-                    // Прилетел в гнездо: выключаем полёт и зависание, плавно сажаем и укладываем спать!
                     setDragonBooleanState(entity, "setFlying", false);
                     setDragonBooleanState(entity, "setHovering", false);
                     if (!entity.onGround()) {
                         Vec3 m = entity.getDeltaMovement();
-                        entity.setDeltaMovement(m.x * 0.5D, -0.25D, m.z * 0.5D);
+                        entity.setDeltaMovement(m.x * 0.4D, -0.25D, m.z * 0.4D);
                         entity.fallDistance = 0.0F;
                     } else {
                         dragonMob.getNavigation().stop();
+                        entity.setDeltaMovement(Vec3.ZERO);
                         setDragonBooleanState(entity, "setSleeping", true);
+                        setDragonBooleanState(entity, "setInSittingPose", true);
                     }
                 }
                 return;
             }
 
-            // 3. Днём: пробуждение и периодический естественный взлёт
+            // 4. Днём: пробуждение и периодический естественный взлёт
             if (!isNight && entity.onGround() && entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
+                setDragonBooleanState(entity, "setInSittingPose", false);
                 triggerIceAndFireDragonFlight(entity);
                 return;
             }
 
-            // 4. Расчистка листвы/веток, если дракон застрял в кронах деревьев
+            // 5. Расчистка листвы/веток, если дракон застрял в кронах деревьев
             int stuck = pData.getIntOr("AxeDragonStuck", 0);
             boolean barelyMoving = entity.onGround() && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1;
             if (barelyMoving) {
@@ -303,6 +320,7 @@ public class ModCompatibilityEvents {
                 stuck = 0;
             }
             pData.putInt("AxeDragonStuck", stuck);
+
         }
     }
 }
