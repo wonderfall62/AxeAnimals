@@ -15,14 +15,10 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
-import net.minecraft.world.entity.animal.cow.Cow;
-import net.minecraft.world.entity.animal.pig.Pig;
-import net.minecraft.world.entity.animal.sheep.Sheep;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -58,13 +54,6 @@ public class LionessEntity extends TamableAnimal {
 
     @Override
     protected void registerGoals() {
-                this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Animal.class, 220, true, false,
-                (target, level) -> !this.isTame() && !this.isBaby()
-                        && !(target instanceof LionEntity)
-                        && !(target instanceof LionessEntity)
-                        && !(target instanceof FerretEntity)
-                        && !(target instanceof TamableAnimal t && t.isTame())));
-
         this.goalSelector.addGoal(1, new FloatGoal(this));
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.35D, true));
@@ -77,16 +66,25 @@ public class LionessEntity extends TamableAnimal {
         this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
         this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
+        this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Animal.class, 200, true, false,
+                (target, level) -> !this.isTame() && !this.isBaby()
+                        && !(target instanceof LionEntity)
+                        && !(target instanceof LionessEntity)
+                        && !(target instanceof FerretEntity)
+                        && !(target instanceof TamableAnimal t && t.isTame())));
     }
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (this.isBaby() && !this.isTame() && stack.is(Items.BEEF)) {
+
+        // Приручать можно ТОЛЬКО львят
+        if (this.isBaby() && !this.isTame() && this.isFood(stack)) {
             if (!this.level().isClientSide()) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 if (this.random.nextInt(3) == 0) {
                     this.tame(player);
+                    this.setOrderedToSit(false);
                     this.level().broadcastEntityEvent(this, (byte) 7);
                 } else {
                     this.level().broadcastEntityEvent(this, (byte) 6);
@@ -94,15 +92,35 @@ public class LionessEntity extends TamableAnimal {
             }
             return InteractionResult.SUCCESS;
         }
-        if (this.isTame() && this.isOwnedBy(player) && !this.isFood(stack)) {
+
+        // Кормление взрослых львиц (и диких, и прирученных): лечение или размножение
+        if (!this.isBaby() && this.isFood(stack)) {
+            if (!this.level().isClientSide()) {
+                if (Float.compare(this.getHealth(), this.getMaxHealth()) == -1) {
+                    if (!player.getAbilities().instabuild) stack.shrink(1);
+                    this.heal(6.0F);
+                    this.level().broadcastEntityEvent(this, (byte) 7);
+                    return InteractionResult.SUCCESS;
+                }
+                if (this.getAge() == 0 && this.canFallInLove()) {
+                    if (!player.getAbilities().instabuild) stack.shrink(1);
+                    this.setInLove(player);
+                    return InteractionResult.SUCCESS;
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // Команда «Сидеть / Встать» для прирученной львицы
+        if (this.isTame() && this.isOwnedBy(player)) {
             if (!this.level().isClientSide()) {
                 this.setOrderedToSit(!this.isOrderedToSit());
             }
             return InteractionResult.SUCCESS;
         }
+
         return super.mobInteract(player, hand);
     }
-
     @Override
     public void tick() {
         super.tick();
@@ -133,7 +151,7 @@ public class LionessEntity extends TamableAnimal {
             } else {
                 this.setSprinting(this.getTarget() != null);
                 if (!this.isInWater() && this.onGround() && !this.isOrderedToSit()
-                        && this.entityData.get(STRETCH_TICKS) == 0 && this.random.nextInt(320) == 0) {
+                        && this.entityData.get(STRETCH_TICKS) == 0 && this.random.nextInt(1500) == 0) {
                     this.sprintTicks = 75 + this.random.nextInt(35);
                 }
             }
@@ -146,20 +164,29 @@ public class LionessEntity extends TamableAnimal {
 
     @Override
     public boolean isFood(ItemStack stack) {
-        return stack.is(Items.BEEF) || stack.is(Items.MUTTON);
+        return stack.is(Items.BEEF) || stack.is(Items.MUTTON) || stack.is(Items.PORKCHOP) || stack.is(Items.CHICKEN);
     }
 
     @Override
     public boolean canMate(Animal otherAnimal) {
-        return otherAnimal instanceof LionEntity && super.canMate(otherAnimal);
+        if (otherAnimal == this) return false;
+        if (!(otherAnimal instanceof LionEntity other)) return false;
+        return this.isInLove() && other.isInLove();
     }
 
     @Nullable
     @Override
     public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
-        return level.getRandom().nextBoolean()
+        TamableAnimal cub = level.getRandom().nextBoolean()
                 ? ModEntities.LION.get().create(level, EntitySpawnReason.BREEDING)
                 : ModEntities.LIONESS.get().create(level, EntitySpawnReason.BREEDING);
+        if (cub != null) {
+            cub.setBaby(true);
+            if (this.isTame() && this.getOwner() != null) {
+                cub.tame(this.getOwner());
+            }
+        }
+        return cub;
     }
 
     @Override
