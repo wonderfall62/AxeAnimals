@@ -30,7 +30,7 @@ public class ModEntities {
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "ferret"))));
 
     public static final DeferredHolder<EntityType<?>, EntityType<WhaleEntity>> WHALE = ENTITIES.register("whale",
-            () -> EntityType.Builder.of(WhaleEntity::new, MobCategory.WATER_AMBIENT)
+            () -> EntityType.Builder.of(WhaleEntity::new, MobCategory.WATER_CREATURE)
                     .sized(5.6F, 2.8F)
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "whale"))));
 
@@ -50,7 +50,7 @@ public class ModEntities {
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "lioness"))));
 
     public static final DeferredHolder<EntityType<?>, EntityType<OrcaEntity>> ORCA = ENTITIES.register("orca",
-            () -> EntityType.Builder.of(OrcaEntity::new, MobCategory.WATER_AMBIENT)
+            () -> EntityType.Builder.of(OrcaEntity::new, MobCategory.WATER_CREATURE)
                     .sized(2.3F, 1.25F)
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "orca"))));
 
