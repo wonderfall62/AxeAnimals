@@ -44,7 +44,16 @@ public class ModCompatibilityEvents {
             }
         }
     }
-
+    @SubscribeEvent
+    public static void onEntityMount(net.neoforged.neoforge.event.entity.EntityMountEvent event) {
+        if (event.isMounting()) {
+            Identifier riderId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntityMounting().getType());
+            Identifier mountId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntityBeingMounted().getType());
+            if (riderId.getNamespace().equals("reanimal") && mountId.getNamespace().equals("iceandfire")) {
+                event.setCanceled(true);
+            }
+        }
+    }
     @SubscribeEvent
     public static void onMobFinalizeSpawn(FinalizeSpawnEvent event) {
         Mob mob = event.getEntity();
