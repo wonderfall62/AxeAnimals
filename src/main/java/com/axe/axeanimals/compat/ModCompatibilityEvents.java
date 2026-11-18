@@ -350,8 +350,18 @@ public class ModCompatibilityEvents {
                 }
                 return;
             }
+          
+            // 4. Днём: пробуждение, плавный отрыв от земли (35 тиков) и свободный полёт
+            int takeoff = pData.getIntOr("AxeDragonTakeoff", 0);
+            if (!isNight && takeoff != 0) {
+                pData.putInt("AxeDragonTakeoff", takeoff - 1);
+                triggerIceAndFireDragonFlight(entity);
+                Vec3 look = entity.getLookAngle();
+                entity.setDeltaMovement(look.x * 0.45D, 0.38D, look.z * 0.45D);
+                entity.fallDistance = 0.0F;
+                return;
+            }
 
-            // 4. Днём: пробуждение и взлёт из гнезда
             if (!isNight && entity.onGround() && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
                 double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
                 double hz = pData.getDoubleOr("AxeHomeZ", entity.getZ());
@@ -362,14 +372,16 @@ public class ModCompatibilityEvents {
 
                 if (insideNest && nestIdle >= 80) {
                     pData.putInt("AxeDragonNestIdle", 0);
+                    pData.putInt("AxeDragonTakeoff", 35);
+                    setDragonBooleanState(entity, "setSleeping", false);
                     setDragonBooleanState(entity, "setInSittingPose", false);
                     triggerIceAndFireDragonFlight(entity);
-                    Vec3 look = entity.getLookAngle();
-                    entity.setDeltaMovement(look.x * 0.55D, 0.75D, look.z * 0.55D);
                     return;
                 } else if (!insideNest) {
                     nestIdle = 0;
                     if (entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
+                        pData.putInt("AxeDragonTakeoff", 35);
+                        setDragonBooleanState(entity, "setSleeping", false);
                         setDragonBooleanState(entity, "setInSittingPose", false);
                         triggerIceAndFireDragonFlight(entity);
                         return;
@@ -378,9 +390,9 @@ public class ModCompatibilityEvents {
                 pData.putInt("AxeDragonNestIdle", nestIdle);
             }
 
-            // 5. Ломка льда, ледяных шипов и препятствий при застревании
+            // 5. Ломка льда и препятствий при застревании (ТОЛЬКО ДНЁМ, чтобы не будить спящего ночью дракона!)
             int stuck = pData.getIntOr("AxeDragonStuck", 0);
-            if (Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1) {
+            if (!isNight && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1) {
                 stuck++;
                 if (stuck >= 60) {
                     stuck = 0;
@@ -401,10 +413,10 @@ public class ModCompatibilityEvents {
                             }
                         }
                     }
+                    pData.putInt("AxeDragonTakeoff", 35);
                     setDragonBooleanState(entity, "setSleeping", false);
                     setDragonBooleanState(entity, "setInSittingPose", false);
                     triggerIceAndFireDragonFlight(entity);
-                    entity.setDeltaMovement(0.0D, 0.85D, 0.0D);
                 }
             } else {
                 stuck = 0;
