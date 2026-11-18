@@ -6,6 +6,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -20,6 +21,21 @@ public class ModItems {
     public static final DeferredHolder<Item, MarineNetItem> MARINE_NET = ITEMS.register("marine_net",
             () -> new MarineNetItem(new Item.Properties().stacksTo(1)
                     .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "marine_net")))));
+
+    public static final DeferredHolder<Item, Item> WHALE_MEAT = ITEMS.register("whale_meat",
+            () -> new Item(new Item.Properties()
+                    .food(new FoodProperties.Builder().nutrition(10).saturationModifier(0.8F).build())
+                    .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "whale_meat")))));
+
+    public static final DeferredHolder<Item, Item> ORCA_MEAT = ITEMS.register("orca_meat",
+            () -> new Item(new Item.Properties()
+                    .food(new FoodProperties.Builder().nutrition(8).saturationModifier(0.8F).build())
+                    .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "orca_meat")))));
+
+    public static final DeferredHolder<Item, Item> STINGRAY_MEAT = ITEMS.register("stingray_meat",
+            () -> new Item(new Item.Properties()
+                    .food(new FoodProperties.Builder().nutrition(4).saturationModifier(0.6F).build())
+                    .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(AxeAnimals.MODID, "stingray_meat")))));
 
     public static final DeferredHolder<Item, SpawnEggItem> FERRET_SPAWN_EGG = ITEMS.register("ferret_spawn_egg",
             () -> new SpawnEggItem(new Item.Properties().spawnEgg(ModEntities.FERRET.get())
@@ -51,6 +67,9 @@ public class ModItems {
                     .icon(() -> new ItemStack(MARINE_NET.get()))
                     .displayItems((params, output) -> {
                         output.accept(MARINE_NET.get());
+                        output.accept(WHALE_MEAT.get());
+                        output.accept(ORCA_MEAT.get());
+                        output.accept(STINGRAY_MEAT.get());
                         output.accept(FERRET_SPAWN_EGG.get());
                         output.accept(WHALE_SPAWN_EGG.get());
                         output.accept(STINGRAY_SPAWN_EGG.get());
