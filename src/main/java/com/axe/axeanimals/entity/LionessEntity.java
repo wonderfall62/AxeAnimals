@@ -1,6 +1,7 @@
 package com.axe.axeanimals.entity;
 
 import com.axe.axeanimals.registry.ModEntities;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -27,8 +28,9 @@ import org.jetbrains.annotations.Nullable;
 
 public class LionessEntity extends TamableAnimal {
     private static final EntityDataAccessor<Boolean> IS_SLEEPING = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Float> SLEEP_PROGRESS = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> COMMAND_MODE = SynchedEntityData.defineId(LionessEntity.class, EntityDataSerializers.INT);
     private int sprintTicks = 0;
-    private int sleepTransition = 0;
 
     public LionessEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -50,6 +52,8 @@ public class LionessEntity extends TamableAnimal {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(IS_SLEEPING, false);
+        builder.define(SLEEP_PROGRESS, 0.0F);
+        builder.define(COMMAND_MODE, 0);
     }
 
     @Override
@@ -58,7 +62,8 @@ public class LionessEntity extends TamableAnimal {
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
         this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.35D, true));
         this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.15D, 10.0F, 2.0F) {
-            @Override public boolean canUse() { return !LionessEntity.this.isSleepingNow() && super.canUse(); }
+            @Override public boolean canUse() { return !LionessEntity.this.isSleepingNow() && LionessEntity.this.entityData.get(COMMAND_MODE) == 0 && super.canUse(); }
+            @Override public boolean canContinueToUse() { return !LionessEntity.this.isSleepingNow() && LionessEntity.this.entityData.get(COMMAND_MODE) == 0 && super.canContinueToUse(); }
         });
         this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D, LionEntity.class));
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.95D) {
@@ -92,6 +97,7 @@ public class LionessEntity extends TamableAnimal {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 if (this.random.nextInt(3) == 0) {
                     this.tame(player);
+                    this.entityData.set(COMMAND_MODE, 0);
                     this.setOrderedToSit(false);
                     this.level().broadcastEntityEvent(this, (byte) 7);
                 } else {
@@ -120,7 +126,12 @@ public class LionessEntity extends TamableAnimal {
 
         if (this.isTame() && this.isOwnedBy(player)) {
             if (!this.level().isClientSide()) {
-                this.setOrderedToSit(!this.isOrderedToSit());
+                int nextMode = (this.entityData.get(COMMAND_MODE) + 1) % 3;
+                this.entityData.set(COMMAND_MODE, nextMode);
+                this.setOrderedToSit(nextMode == 1);
+                String msg = nextMode == 0 ? "Режим: Следовать" : (nextMode == 1 ? "Режим: Сидеть" : "Режим: Свободный выгул");
+                player.displayClientMessage(Component.literal(msg), true);
+
             }
             return InteractionResult.SUCCESS;
         }
@@ -131,20 +142,13 @@ public class LionessEntity extends TamableAnimal {
     @Override
     public void tick() {
         super.tick();
-        if (this.level().isClientSide()) {
-            if (this.isSleepingNow()) {
-                if (this.sleepTransition != 30) this.sleepTransition++;
-            } else if (this.sleepTransition != 0) {
-                this.sleepTransition--;
-            }
-            return;
-        }
+        if (this.level().isClientSide()) return;
 
         boolean isNight = !this.level().isBrightOutside();
-        boolean canSleep = isNight && this.onGround() && !this.isInWater() && this.getTarget() == null && !this.isInLove();
+        boolean canSleep = isNight && this.onGround() && !this.isInWater() && this.getTarget() == null && !this.isInLove() && !this.isOrderedToSit();
 
         if (canSleep) {
-            if (!this.isSleepingNow() && this.tickCount % 40 == 0 && this.random.nextInt(3) == 0) {
+            if (!this.isSleepingNow() && this.tickCount % 40 == 0 && this.random.nextInt(2) == 0) {
                 this.entityData.set(IS_SLEEPING, true);
                 this.getNavigation().stop();
             }
@@ -154,6 +158,13 @@ public class LionessEntity extends TamableAnimal {
             }
         } else if (this.isSleepingNow()) {
             this.entityData.set(IS_SLEEPING, false);
+        }
+
+        float curProgress = this.entityData.get(SLEEP_PROGRESS);
+        if (this.isSleepingNow() && Float.compare(curProgress, 1.0F) == -1) {
+            this.entityData.set(SLEEP_PROGRESS, Math.min(1.0F, curProgress + 0.04F));
+        } else if (!this.isSleepingNow() && Float.compare(curProgress, 0.0F) == 1) {
+            this.entityData.set(SLEEP_PROGRESS, Math.max(0.0F, curProgress - 0.06F));
         }
 
         if (this.sprintTicks != 0) {
@@ -178,7 +189,7 @@ public class LionessEntity extends TamableAnimal {
     }
 
     public float getSleepProgress() {
-        return (float) this.sleepTransition / 30.0F;
+        return this.entityData.get(SLEEP_PROGRESS);
     }
 
     @Override
