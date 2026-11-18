@@ -62,6 +62,13 @@ public class ModCompatibilityEvents {
             if (Float.compare(mob.getRandom().nextFloat(), 0.80F) == -1) {
                 event.setSpawnCancelled(true);
             }
+        } else if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg")) {
+            boolean tooCloseToOtherDragon = !mob.level().getEntities(mob, mob.getBoundingBox().inflate(72.0D),
+                    e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("dragon")).isEmpty();
+            boolean inCrackOrCanyon = !mob.level().canSeeSky(mob.blockPosition().above(2));
+            if (tooCloseToOtherDragon || (inCrackOrCanyon && Float.compare(mob.getRandom().nextFloat(), 0.80F) == -1)) {
+                event.setSpawnCancelled(true);
+            }
         }
     }
 
@@ -318,7 +325,7 @@ public class ModCompatibilityEvents {
                 return;
             }
 
-            // 3. Ночной возврат в центр гнезда, посадка с анимацией полёта и сон
+            // 3. Ночной возврат в центр гнезда, спокойная посадка и сон без дёрганий
             boolean isNight = !entity.level().isBrightOutside();
             if (isNight && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
                 double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
@@ -328,7 +335,17 @@ public class ModCompatibilityEvents {
                 double dz = hz - entity.getZ();
                 double horizDistSq = dx * dx + dz * dz;
 
-                if (Double.compare(horizDistSq, 16.0D) == 1) {
+                if (pData.getBooleanOr("AxeNestSettled", false)) {
+                    setDragonBooleanState(entity, "setFlying", false);
+                    setDragonBooleanState(entity, "setHovering", false);
+                    dragonMob.getNavigation().stop();
+                    entity.setDeltaMovement(0.0D, entity.getDeltaMovement().y, 0.0D);
+                    setDragonBooleanState(entity, "setSleeping", true);
+                    setDragonBooleanState(entity, "setInSittingPose", true);
+                    return;
+                }
+
+                if (Double.compare(horizDistSq, 25.0D) == 1) {
                     triggerIceAndFireDragonFlight(entity);
                     double dist = Math.sqrt(horizDistSq);
                     double targetY = Math.max(hy + 4.0D, entity.getY());
@@ -338,9 +355,10 @@ public class ModCompatibilityEvents {
                     entity.fallDistance = 0.0F;
                 } else if (!entity.onGround()) {
                     triggerIceAndFireDragonFlight(entity);
-                    entity.setDeltaMovement(dx * 0.15D, -0.22D, dz * 0.15D);
+                    entity.setDeltaMovement(dx * 0.12D, -0.25D, dz * 0.12D);
                     entity.fallDistance = 0.0F;
                 } else {
+                    pData.putBoolean("AxeNestSettled", true);
                     setDragonBooleanState(entity, "setFlying", false);
                     setDragonBooleanState(entity, "setHovering", false);
                     dragonMob.getNavigation().stop();
@@ -349,9 +367,26 @@ public class ModCompatibilityEvents {
                     setDragonBooleanState(entity, "setInSittingPose", true);
                 }
                 return;
+            } else {
+                pData.putBoolean("AxeNestSettled", false);
             }
-          
-            // 4. Днём: пробуждение, плавный отрыв от земли (35 тиков) и свободный полёт
+
+            // 4. Днём: не отпускать дракона дальше 55 блоков от гнезда + плавный взлёт (35 тиков)
+            double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
+            double hz = pData.getDoubleOr("AxeHomeZ", entity.getZ());
+            double toHomeX = hx - entity.getX();
+            double toHomeZ = hz - entity.getZ();
+            double homeDistSq = toHomeX * toHomeX + toHomeZ * toHomeZ;
+
+            if (!isNight && !entity.onGround() && Double.compare(homeDistSq, 3025.0D) == 1) {
+                triggerIceAndFireDragonFlight(entity);
+                double dist = Math.sqrt(homeDistSq);
+                entity.setDeltaMovement((toHomeX / dist) * 0.50D, 0.05D, (toHomeZ / dist) * 0.50D);
+                entity.setYRot((float) (Math.atan2(toHomeZ, toHomeX) * (180.0D / Math.PI)) - 90.0F);
+                entity.fallDistance = 0.0F;
+                return;
+            }
+
             int takeoff = pData.getIntOr("AxeDragonTakeoff", 0);
             if (!isNight && takeoff != 0) {
                 pData.putInt("AxeDragonTakeoff", takeoff - 1);
@@ -363,11 +398,7 @@ public class ModCompatibilityEvents {
             }
 
             if (!isNight && entity.onGround() && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
-                double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
-                double hz = pData.getDoubleOr("AxeHomeZ", entity.getZ());
-                double dx = entity.getX() - hx;
-                double dz = entity.getZ() - hz;
-                boolean insideNest = Double.compare(dx * dx + dz * dz, 225.0D) == -1;
+                boolean insideNest = Double.compare(homeDistSq, 225.0D) == -1;
                 int nestIdle = pData.getIntOr("AxeDragonNestIdle", 0) + 1;
 
                 if (insideNest && nestIdle >= 80) {
@@ -390,7 +421,7 @@ public class ModCompatibilityEvents {
                 pData.putInt("AxeDragonNestIdle", nestIdle);
             }
 
-            // 5. Ломка льда и препятствий при застревании (ТОЛЬКО ДНЁМ, чтобы не будить спящего ночью дракона!)
+            // 5. Ломка льда и препятствий при застревании (ТОЛЬКО ДНЁМ)
             int stuck = pData.getIntOr("AxeDragonStuck", 0);
             if (!isNight && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1) {
                 stuck++;
