@@ -325,4 +325,21 @@ public class ModCompatibilityEvents {
 
         }
     }
+    
+    @SubscribeEvent
+    public static void onAnimalDrops(net.neoforged.neoforge.event.entity.living.LivingDropsEvent event) {
+        Entity entity = event.getEntity();
+        if (entity.level().isClientSide()) return;
+
+        if (entity instanceof WhaleEntity whale && !whale.isBaby()) {
+            ItemStack drop = new ItemStack(com.axe.axeanimals.registry.ModItems.WHALE_MEAT.get(), 6);
+            event.getDrops().add(new net.minecraft.world.entity.item.ItemEntity(entity.level(), entity.getX(), entity.getY(), entity.getZ(), drop));
+        } else if (entity instanceof com.axe.axeanimals.entity.OrcaEntity orca && !orca.isBaby()) {
+            ItemStack drop = new ItemStack(com.axe.axeanimals.registry.ModItems.ORCA_MEAT.get(), 4);
+            event.getDrops().add(new net.minecraft.world.entity.item.ItemEntity(entity.level(), entity.getX(), entity.getY(), entity.getZ(), drop));
+        } else if (entity instanceof com.axe.axeanimals.entity.StingrayEntity) {
+            ItemStack drop = new ItemStack(com.axe.axeanimals.registry.ModItems.STINGRAY_MEAT.get(), 1);
+            event.getDrops().add(new net.minecraft.world.entity.item.ItemEntity(entity.level(), entity.getX(), entity.getY(), entity.getZ(), drop));
+        }
+    }
 }
