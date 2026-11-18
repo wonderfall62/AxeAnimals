@@ -124,10 +124,13 @@ public class LionEntity extends TamableAnimal {
                 this.entityData.set(COMMAND_MODE, nextMode);
                 this.setOrderedToSit(nextMode == 1);
                 String msg = nextMode == 0 ? "Режим: Следовать" : (nextMode == 1 ? "Режим: Сидеть" : "Режим: Свободный выгул");
-                player.displayClientMessage(Component.literal(msg), true);
+                if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                    sp.sendSystemMessage(Component.literal(msg), true);
+                }
             }
             return InteractionResult.SUCCESS;
         }
+
 
         return super.mobInteract(player, hand);
     }
