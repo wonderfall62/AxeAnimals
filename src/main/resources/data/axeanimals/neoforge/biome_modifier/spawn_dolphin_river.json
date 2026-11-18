@@ -1,5 +1,13 @@
 {
   "type": "neoforge:add_spawns",
-  "biomes": [],
-  "spawners": []
+  "biomes": [
+    "minecraft:river"
+  ],
+  "spawners": [
+    {
+      "type": "minecraft:dolphin",
+      "weight": 1,
+      "count": 1
+    }
+  ]
 }
