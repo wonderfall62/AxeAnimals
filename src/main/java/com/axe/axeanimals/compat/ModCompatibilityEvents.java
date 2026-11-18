@@ -34,6 +34,18 @@ import java.util.List;
 public class ModCompatibilityEvents {
 
     @SubscribeEvent
+    public static void onDragonChangeTarget(net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent event) {
+        Entity entity = event.getEntity();
+        Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        if (id.getNamespace().equals("iceandfire") && id.getPath().contains("dragon")) {
+            net.minecraft.world.entity.LivingEntity newTarget = event.getNewAboutToBeSetTarget();
+            if (newTarget != null && (newTarget.isInWater() || newTarget instanceof net.minecraft.world.entity.animal.fish.WaterAnimal)) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
     public static void onMobFinalizeSpawn(FinalizeSpawnEvent event) {
         Mob mob = event.getEntity();
         Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
@@ -56,7 +68,7 @@ public class ModCompatibilityEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         for (ServerLevel level : event.getServer().getAllLevels()) {
-            if (level.players().isEmpty() || level.getGameTime() % 160 != 0) continue;
+            if (level.players().isEmpty() || level.getGameTime() % 200 != 0) continue;
             for (ServerPlayer player : level.players()) {
                 if (player.isSpectator() || player.tickCount < 80) continue;
                 BlockPos pPos = player.blockPosition();
@@ -64,15 +76,23 @@ public class ModCompatibilityEvents {
                 if (!biomeHolder.is(BiomeTags.IS_OCEAN)) continue;
 
                 AABB area = player.getBoundingBox().inflate(64.0D);
+                AABB wideArea = player.getBoundingBox().inflate(96.0D);
                 String biomePath = biomeHolder.unwrapKey().map(k -> k.identifier().getPath()).orElse("");
 
-                long sharksNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("shark")).size();
-                if (Float.compare(sharksNearby, 1.5F) == -1) {
-                    spawnMarineFromOtherMod(level, player, "shark", 1, 22.0D, 48.0D);
+                long sharksNearby = level.getEntities(player, wideArea, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("shark")).size();
+                if (sharksNearby == 0 && level.getRandom().nextInt(3) == 0) {
+                    spawnMarineFromOtherMod(level, player, "shark", 1, 28.0D, 56.0D);
                 }
 
-                boolean isColdOcean = biomePath.contains("cold") || biomePath.contains("frozen");
-                if (isColdOcean) {
+                if (!biomePath.contains("frozen")) {
+                    long dolphinsNearby = level.getEntities(player, area, e -> e instanceof Dolphin).size();
+                    if (Float.compare(dolphinsNearby, 2.5F) == -1) {
+                        spawnDolphinPod(level, player, 2 + level.getRandom().nextInt(3), 20.0D, 48.0D);
+                    }
+                }
+
+                boolean isFrozenOcean = biomePath.contains("frozen");
+                if (isFrozenOcean) {
                     long narwhalsNearby = level.getEntities(player, area, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("narwhal")).size();
                     if (Float.compare(narwhalsNearby, 1.5F) == -1) {
                         spawnMarineFromOtherMod(level, player, "narwhal", 2 + level.getRandom().nextInt(2), 18.0D, 44.0D);
@@ -80,7 +100,6 @@ public class ModCompatibilityEvents {
                 }
 
                 if (biomePath.contains("deep")) {
-                    AABB wideArea = player.getBoundingBox().inflate(96.0D);
                     long serpentsNearby = level.getEntities(player, wideArea, e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().contains("sea_serpent")).size();
                     if (serpentsNearby == 0 && level.getRandom().nextInt(5) == 0) {
                         spawnMarineFromOtherMod(level, player, "sea_serpent", 1, 40.0D, 70.0D);
@@ -218,7 +237,8 @@ public class ModCompatibilityEvents {
         if (ns.equals("iceandfire") && path.contains("dragon") && !path.contains("egg") && !path.contains("skull")) {
             if (entity.isVehicle()) return;
 
-            if (entity instanceof Mob dragonMob && dragonMob.getTarget() != null && dragonMob.getTarget().isInWater()) {
+            if (entity instanceof Mob dragonMob && dragonMob.getTarget() != null
+                    && (dragonMob.getTarget().isInWater() || dragonMob.getTarget() instanceof net.minecraft.world.entity.animal.fish.WaterAnimal)) {
                 dragonMob.setTarget(null);
             }
 
@@ -227,9 +247,27 @@ public class ModCompatibilityEvents {
                 pData.putDouble("AxeHomeX", entity.getX());
                 pData.putDouble("AxeHomeY", entity.getY());
                 pData.putDouble("AxeHomeZ", entity.getZ());
+
+                BlockPos center = entity.blockPosition();
+                for (int dx = -8; dx <= 8; dx++) {
+                    for (int dy = 0; dy <= 6; dy++) {
+                        for (int dz = -8; dz <= 8; dz++) {
+                            if (Double.compare(dx * dx + dz * dz, 64.0D) == 1) continue;
+                            BlockPos bp = center.offset(dx, dy, dz);
+                            BlockState bs = entity.level().getBlockState(bp);
+                            if (bs.isAir()) continue;
+                            String bPath = BuiltInRegistries.BLOCK.getKey(bs.getBlock()).getPath();
+                            if (bPath.contains("chest") || bPath.contains("ore") || bPath.contains("bed") || bPath.contains("spawner")) continue;
+                            if (bPath.contains("charred") || bPath.contains("frozen") || bPath.contains("crackled") || bPath.contains("ash")
+                                    || bPath.contains("spike") || bs.is(BlockTags.ICE) || bs.is(BlockTags.LEAVES) || bs.is(BlockTags.LOGS)) {
+                                entity.level().destroyBlock(bp, false);
+                            }
+                        }
+                    }
+                }
             }
 
-            // 1. Вытаскиваем дракона из воды и поднимаем выше поверхности океана
+            // 1. Выход из воды
             boolean inOrNearWater = entity.isInWater() || !entity.level().getFluidState(entity.blockPosition().below(3)).isEmpty();
             if (inOrNearWater) {
                 triggerIceAndFireDragonFlight(entity);
@@ -239,13 +277,12 @@ public class ModCompatibilityEvents {
                 return;
             }
 
-            // 2. В бою: против крупных врагов (циклопов и т.п.) дракон взлетает в воздух, а мелкую добычу кусает на земле!
+            // 2. В бою: взлёт против циклопов, на земле против мелкой добычи
             if (entity instanceof Mob dragonMob && dragonMob.getTarget() != null) {
                 Entity target = dragonMob.getTarget();
                 String tPath = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).getPath();
                 boolean bigEnemy = Float.compare(target.getBbHeight(), 2.2F) == 1
                         || tPath.contains("cyclops") || tPath.contains("troll") || tPath.contains("golem") || tPath.contains("dragon");
-
                 if (bigEnemy && entity.onGround() && entity.tickCount % 25 == 0) {
                     triggerIceAndFireDragonFlight(entity);
                     Vec3 away = entity.position().subtract(target.position()).normalize();
@@ -254,78 +291,101 @@ public class ModCompatibilityEvents {
                 return;
             }
 
-
-      // 3. Ночной возврат дикого дракона в родное гнездо по горизонтали X/Z, посадка на землю и сон
+            // 3. Ночной возврат в центр гнезда, посадка с анимацией полёта и сон
             boolean isNight = !entity.level().isBrightOutside();
             if (isNight && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
                 double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
                 double hy = pData.getDoubleOr("AxeHomeY", entity.getY());
                 double hz = pData.getDoubleOr("AxeHomeZ", entity.getZ());
-                double dx = entity.getX() - hx;
-                double dz = entity.getZ() - hz;
+                double dx = hx - entity.getX();
+                double dz = hz - entity.getZ();
                 double horizDistSq = dx * dx + dz * dz;
 
-                if (Double.compare(horizDistSq, 196.0D) == 1) {
-                    if (entity.tickCount % 25 == 0) {
-                        triggerIceAndFireDragonFlight(entity);
-                        dragonMob.getNavigation().moveTo(hx, hy + 2.0D, hz, 1.35D);
-                    }
+                if (Double.compare(horizDistSq, 16.0D) == 1) {
+                    triggerIceAndFireDragonFlight(entity);
+                    double dist = Math.sqrt(horizDistSq);
+                    double targetY = Math.max(hy + 4.0D, entity.getY());
+                    double vy = Float.compare((float) entity.getY(), (float) targetY) == -1 ? 0.25D : -0.05D;
+                    entity.setDeltaMovement((dx / dist) * 0.55D, vy, (dz / dist) * 0.55D);
+                    entity.setYRot((float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F);
+                    entity.fallDistance = 0.0F;
+                } else if (!entity.onGround()) {
+                    triggerIceAndFireDragonFlight(entity);
+                    entity.setDeltaMovement(dx * 0.15D, -0.22D, dz * 0.15D);
+                    entity.fallDistance = 0.0F;
                 } else {
                     setDragonBooleanState(entity, "setFlying", false);
                     setDragonBooleanState(entity, "setHovering", false);
-                    if (!entity.onGround()) {
-                        Vec3 m = entity.getDeltaMovement();
-                        entity.setDeltaMovement(m.x * 0.3D, -0.28D, m.z * 0.3D);
-                        entity.fallDistance = 0.0F;
-                    } else {
-                        dragonMob.getNavigation().stop();
-                        entity.setDeltaMovement(Vec3.ZERO);
-                        setDragonBooleanState(entity, "setSleeping", true);
-                        setDragonBooleanState(entity, "setInSittingPose", true);
-                    }
+                    dragonMob.getNavigation().stop();
+                    entity.setDeltaMovement(Vec3.ZERO);
+                    setDragonBooleanState(entity, "setSleeping", true);
+                    setDragonBooleanState(entity, "setInSittingPose", true);
                 }
                 return;
             }
-            
-            // 4. Днём: пробуждение и периодический естественный взлёт
-            if (!isNight && entity.onGround() && entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
-                setDragonBooleanState(entity, "setInSittingPose", false);
-                triggerIceAndFireDragonFlight(entity);
-                return;
+
+            // 4. Днём: пробуждение и взлёт из гнезда
+            if (!isNight && entity.onGround() && entity instanceof Mob dragonMob && dragonMob.getTarget() == null) {
+                double hx = pData.getDoubleOr("AxeHomeX", entity.getX());
+                double hz = pData.getDoubleOr("AxeHomeZ", entity.getZ());
+                double dx = entity.getX() - hx;
+                double dz = entity.getZ() - hz;
+                boolean insideNest = Double.compare(dx * dx + dz * dz, 225.0D) == -1;
+                int nestIdle = pData.getIntOr("AxeDragonNestIdle", 0) + 1;
+
+                if (insideNest && nestIdle >= 80) {
+                    pData.putInt("AxeDragonNestIdle", 0);
+                    setDragonBooleanState(entity, "setInSittingPose", false);
+                    triggerIceAndFireDragonFlight(entity);
+                    Vec3 look = entity.getLookAngle();
+                    entity.setDeltaMovement(look.x * 0.55D, 0.75D, look.z * 0.55D);
+                    return;
+                } else if (!insideNest) {
+                    nestIdle = 0;
+                    if (entity.tickCount % 220 == 0 && Float.compare(entity.getRandom().nextFloat(), 0.45F) == -1) {
+                        setDragonBooleanState(entity, "setInSittingPose", false);
+                        triggerIceAndFireDragonFlight(entity);
+                        return;
+                    }
+                }
+                pData.putInt("AxeDragonNestIdle", nestIdle);
             }
 
-            // 5. Расчистка листвы/веток, если дракон застрял в кронах деревьев
+            // 5. Ломка льда, ледяных шипов и препятствий при застревании
             int stuck = pData.getIntOr("AxeDragonStuck", 0);
-            boolean barelyMoving = entity.onGround() && Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1;
-            if (barelyMoving) {
+            if (Double.compare(entity.getDeltaMovement().horizontalDistanceSqr(), 0.003D) == -1) {
                 stuck++;
-                if (stuck >= 100) {
+                if (stuck >= 60) {
                     stuck = 0;
                     BlockPos center = entity.blockPosition();
                     for (int dx = -4; dx <= 4; dx++) {
-                        for (int dy = 1; dy <= 7; dy++) {
+                        for (int dy = 0; dy <= 7; dy++) {
                             for (int dz = -4; dz <= 4; dz++) {
                                 BlockPos bp = center.offset(dx, dy, dz);
                                 BlockState bs = entity.level().getBlockState(bp);
                                 if (bs.isAir()) continue;
                                 String bPath = BuiltInRegistries.BLOCK.getKey(bs.getBlock()).getPath();
-                                if (bs.is(BlockTags.LEAVES) || bs.is(BlockTags.LOGS) || bs.is(BlockTags.SNOW)
-                                        || bPath.contains("charred") || bPath.contains("frozen") || bPath.contains("crackled") || bPath.contains("ash")) {
+                                if (bPath.contains("chest") || bPath.contains("ore") || bPath.contains("bed") || bPath.contains("spawner")) continue;
+                                if (bs.is(BlockTags.LEAVES) || bs.is(BlockTags.LOGS) || bs.is(BlockTags.SNOW) || bs.is(BlockTags.ICE)
+                                        || bPath.contains("ice") || bPath.contains("spike") || bPath.contains("charred")
+                                        || bPath.contains("frozen") || bPath.contains("crackled") || bPath.contains("ash")) {
                                     entity.level().destroyBlock(bp, false);
                                 }
                             }
                         }
                     }
+                    setDragonBooleanState(entity, "setSleeping", false);
+                    setDragonBooleanState(entity, "setInSittingPose", false);
                     triggerIceAndFireDragonFlight(entity);
+                    entity.setDeltaMovement(0.0D, 0.85D, 0.0D);
                 }
             } else {
                 stuck = 0;
             }
             pData.putInt("AxeDragonStuck", stuck);
-
         }
     }
-    
+
     @SubscribeEvent
     public static void onAnimalDrops(net.neoforged.neoforge.event.entity.living.LivingDropsEvent event) {
         Entity entity = event.getEntity();
