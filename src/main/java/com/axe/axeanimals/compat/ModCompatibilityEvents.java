@@ -108,6 +108,30 @@ public class ModCompatibilityEvents {
             }
         }
     }
+    private static void spawnDolphinPod(ServerLevel level, ServerPlayer player, int count, double minDist, double maxDist) {
+        int seaY = level.getSeaLevel();
+        for (int attempt = 0; attempt != 12; attempt++) {
+            double angle = level.getRandom().nextDouble() * Math.PI * 2.0D;
+            double dist = minDist + level.getRandom().nextDouble() * (maxDist - minDist);
+            int sx = (int) (player.getX() + Math.cos(angle) * dist);
+            int sz = (int) (player.getZ() + Math.sin(angle) * dist);
+            int sy = seaY - 2 - level.getRandom().nextInt(3);
+            BlockPos spawnPos = new BlockPos(sx, sy, sz);
+
+            if (level.isLoaded(spawnPos) && level.getFluidState(spawnPos).is(FluidTags.WATER) && level.getFluidState(spawnPos.below(2)).is(FluidTags.WATER)) {
+                for (int i = 0; i != count; i++) {
+                    Dolphin dolphin = EntityType.DOLPHIN.create(level, EntitySpawnReason.NATURAL);
+                    if (dolphin != null) {
+                        double ox = (level.getRandom().nextDouble() - 0.5D) * 4.5D;
+                        double oz = (level.getRandom().nextDouble() - 0.5D) * 4.5D;
+                        dolphin.snapTo(sx + 0.5D + ox, sy, sz + 0.5D + oz, level.getRandom().nextFloat() * 360.0F, 0.0F);
+                        level.addFreshEntity(dolphin);
+                    }
+                }
+                break;
+            }
+        }
+    }
 
     private static void spawnMarineFromOtherMod(ServerLevel level, ServerPlayer player, String keyword, int count, double minDist, double maxDist) {
         List<EntityType<?>> types = BuiltInRegistries.ENTITY_TYPE.stream()
