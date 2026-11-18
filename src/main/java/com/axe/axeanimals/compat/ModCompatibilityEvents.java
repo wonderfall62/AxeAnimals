@@ -378,7 +378,7 @@ public class ModCompatibilityEvents {
             double toHomeZ = hz - entity.getZ();
             double homeDistSq = toHomeX * toHomeX + toHomeZ * toHomeZ;
 
-            if (!isNight && !entity.onGround() && Double.compare(homeDistSq, 3025.0D) == 1) {
+            if (!isNight && !entity.onGround() && Double.compare(homeDistSq, 14400.0D) == 1) {
                 triggerIceAndFireDragonFlight(entity);
                 double dist = Math.sqrt(homeDistSq);
                 entity.setDeltaMovement((toHomeX / dist) * 0.50D, 0.05D, (toHomeZ / dist) * 0.50D);
