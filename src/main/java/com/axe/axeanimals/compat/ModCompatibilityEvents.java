@@ -108,7 +108,10 @@ public class ModCompatibilityEvents {
             }
         }
     }
+
     private static void spawnDolphinPod(ServerLevel level, ServerPlayer player, int count, double minDist, double maxDist) {
+        EntityType<?> dolphinType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.withDefaultNamespace("dolphin"));
+        if (dolphinType == null) return;
         int seaY = level.getSeaLevel();
         for (int attempt = 0; attempt != 12; attempt++) {
             double angle = level.getRandom().nextDouble() * Math.PI * 2.0D;
@@ -120,7 +123,7 @@ public class ModCompatibilityEvents {
 
             if (level.isLoaded(spawnPos) && level.getFluidState(spawnPos).is(FluidTags.WATER) && level.getFluidState(spawnPos.below(2)).is(FluidTags.WATER)) {
                 for (int i = 0; i != count; i++) {
-                    Dolphin dolphin = EntityType.DOLPHIN.create(level, EntitySpawnReason.NATURAL);
+                    Entity dolphin = dolphinType.create(level, EntitySpawnReason.NATURAL);
                     if (dolphin != null) {
                         double ox = (level.getRandom().nextDouble() - 0.5D) * 4.5D;
                         double oz = (level.getRandom().nextDouble() - 0.5D) * 4.5D;
