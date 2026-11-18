@@ -12,8 +12,9 @@
   "spawners": [
     {
       "type": "minecraft:dolphin",
-      "weight": 6,
-      "count": 1
+      "weight": 22,
+      "minCount": 2,
+      "maxCount": 4
     }
   ]
 }
